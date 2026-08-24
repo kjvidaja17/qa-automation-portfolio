@@ -281,6 +281,97 @@ Create a new booking.
 - The retrieved values matched the values submitted during creation.
 - This confirms the created booking was persisted and retrievable.
 
+### PUT /booking/{id}
+
+**Purpose:**  
+Replace the details of an existing booking.
+
+**Test setup:**
+
+- A fresh booking was created immediately before the PUT test.
+- Created booking ID: `5221`
+
+**Authentication:**
+
+- Valid credentials successfully generated an authentication token.
+- The token was supplied using the documented `Cookie: token=<token>` approach.
+
+**Test data:**
+
+- firstname: `Kenneth Updated`
+- lastname: `PUT Test Updated`
+- totalprice: `500`
+- depositpaid: `false`
+- checkin: `2026-12-01`
+- checkout: `2026-12-10`
+- additionalneeds: `Lunch`
+
+**Observed result:**
+
+- PUT request returned HTTP 403 Forbidden.
+- The same result occurred using both PowerShell `Invoke-RestMethod` and `curl.exe`.
+- The target booking remained unchanged when subsequently retrieved with `GET /booking/5221`.
+
+**QA observation:**
+
+- PUT update behavior could not be successfully completed during reconnaissance despite using valid credentials and the documented token-cookie approach.
+- Authentication behavior for protected update operations requires further investigation before automation.
+
+### PATCH /booking/{id}
+
+**Purpose:**  
+Partially update an existing booking.
+
+**Test setup:**
+
+- A fresh booking was created immediately before the PATCH test.
+- Created booking ID: `2195`.
+
+**Patch request:**
+
+- Only `additionalneeds` was changed from `Breakfast` to `Dinner`.
+
+**Authentication:**
+
+- Valid credentials successfully generated an authentication token.
+- The token was supplied using the `Cookie: token=<token>` approach.
+
+**Observed result:**
+
+- PATCH request returned HTTP 403 Forbidden.
+- The subsequent GET request returned HTTP 200.
+- The booking remained unchanged.
+
+**QA observation:**
+
+- PATCH update behavior could not be successfully completed during reconnaissance.
+- PUT and PATCH both returned HTTP 403 despite successful authentication.
+- Authentication behavior for protected update operations requires further investigation.
+
+### DELETE /booking/{id}
+
+**Purpose:**  
+Delete an existing booking.
+
+**Test setup:**
+
+- A fresh booking was created immediately before the DELETE test.
+- Created booking ID: `3022`.
+
+**Authentication:**
+
+- Valid credentials successfully generated an authentication token.
+- The token was supplied using the `Cookie: token=<token>` approach.
+
+**Observed result:**
+
+- DELETE request returned HTTP 403 Forbidden.
+
+**QA observation:**
+
+- The booking was not deleted during reconnaissance.
+- Authenticated DELETE behavior requires further investigation.
+
 ### Negative scenarios — Missing required fields
 
 | Scenario | Observed result |
@@ -331,6 +422,21 @@ Create a new booking.
 - The input appears to be coerced to boolean rather than rejected.
 - This represents weak input-type validation and should be covered by negative API tests.
 
+### Shared Test Data Behavior
+
+**Observation:**
+
+- Booking `3959` was created successfully during earlier reconnaissance.
+- A later `GET /booking/3959` returned HTTP 404 Not Found.
+- This confirms that booking records created during reconnaissance may not persist indefinitely.
+
+**Testing implication:**
+
+- Automated tests must not depend on previously created booking IDs.
+- Tests should create or dynamically discover their required test data.
+- Cleanup should be performed where appropriate.
+- Test cases should be resilient to the shared environment being reset or modified.
+
 ## 6. Functional Scenarios
 
 ## 7. Negative Scenarios
@@ -340,3 +446,9 @@ Create a new booking.
 ## 9. Integration Scenarios
 
 ## 10. Initial Risks / Questions
+
+### Protected CRUD Operations
+
+PUT, PATCH, and DELETE operations returned HTTP 403 during reconnaissance despite successful authentication and token generation.
+
+This behavior requires further investigation against the documented authentication contract before implementation of automated protected-operation tests.
