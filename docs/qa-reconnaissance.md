@@ -30,7 +30,8 @@ The API starts with 10 pre-loaded booking records.
 
 ### Environment behavior
 
-The API resets to its default data approximately every 10 minutes.
+- Although the application documentation describes a default dataset, the shared environment returned 2,466 booking IDs during this reconnaissance session.
+- The API resets to its default data approximately every 10 minutes.
 
 ### Testing relevance
 
@@ -138,11 +139,11 @@ A booking can contain:
 
 ### Application UI
 
-Restful Booker provides a basic browser-accessible interface associated with the booking application and API playground.
+A browser-accessible interface is available, but the reconnaissance performed so far has focused primarily on the REST API.
 
 ### UI Testing Relevance
 
-The application is primarily designed for API testing rather than as a feature-rich customer-facing web application. Therefore, the primary automation focus of this portfolio will be API and API-driven testing.
+The portfolio will treat the API as the primary system-under-test layer. Browser automation will be included only where the application provides meaningful UI behavior that adds value beyond API-level testing.
 
 ### Planned UI / Browser Coverage
 
@@ -439,16 +440,208 @@ Delete an existing booking.
 
 ## 6. Functional Scenarios
 
+### Authentication
+
+- Generate authentication token using valid credentials.
+- Reject authentication using invalid credentials.
+- Verify authentication response contains a token for valid credentials.
+
+### Booking Retrieval
+
+- Retrieve list of booking IDs.
+- Retrieve an existing booking by ID.
+- Return not-found response for a nonexistent booking.
+- Filter bookings by supported query parameters.
+
+### Booking Creation
+
+- Create a booking with valid data.
+- Verify the created booking returns a booking ID.
+- Verify the created booking can be retrieved.
+- Verify submitted booking data matches persisted data.
+
+### Booking Updates
+
+- Fully update an existing booking using PUT.
+- Partially update an existing booking using PATCH.
+- Verify updated booking data persists.
+
+### Booking Deletion
+
+- Delete an existing booking.
+- Verify deleted booking can no longer be retrieved.
+
 ## 7. Negative Scenarios
+
+### Authentication (Negative)
+
+- Reject invalid username.
+- Reject invalid password.
+- Reject requests with missing credentials.
+- Verify no authentication token is returned for invalid credentials.
+
+### Booking Retrieval (Negative)
+
+- Return HTTP 404 when requesting a nonexistent booking ID.
+- Investigate behavior when unsupported or unmatched filter values are supplied.
+- Verify API behavior when required request headers are omitted.
+
+### Booking Creation (Negative)
+
+- Reject or appropriately handle missing `firstname`.
+- Reject or appropriately handle missing `lastname`.
+- Reject invalid `totalprice` data types.
+- Reject invalid `depositpaid` data types.
+- Validate malformed booking dates.
+- Validate invalid date ranges.
+- Validate invalid or unexpected field values.
+
+### Booking Updates (Negative)
+
+- Verify behavior when authentication is missing or invalid for PUT.
+- Verify behavior when authentication is missing or invalid for PATCH.
+- Verify behavior when authentication is missing or invalid for DELETE.
+- Investigate why authenticated PUT, PATCH, and DELETE requests return HTTP 403.
+- Verify behavior when updating a nonexistent booking.
+- Verify behavior when required fields are omitted from a PUT request.
+- Verify behavior when invalid data types are supplied during updates.
+
+### Booking Deletion (Negative)
+
+- Reject unauthorized DELETE requests.
+- Verify behavior when deleting a nonexistent booking.
 
 ## 8. Boundary / Edge Cases
 
+### Authentication (Boundary)
+
+- Empty username.
+- Empty password.
+- Username or password containing leading/trailing whitespace.
+- Unexpectedly long username or password values.
+
+### Booking Data
+
+- `totalprice` equal to `0`.
+- `totalprice` as a negative value.
+- Very large `totalprice` value.
+- `totalprice` with decimal values.
+- Empty `firstname`.
+- Empty `lastname`.
+- Very long `firstname` or `lastname`.
+- Leading/trailing whitespace in name fields.
+
+### Deposit Status
+
+- `depositpaid = true`.
+- `depositpaid = false`.
+- Invalid boolean representations such as strings or numeric values.
+
+### Booking Dates
+
+- Check-in date equal to check-out date.
+- Check-out date earlier than check-in date.
+- Dates in the past.
+- Very distant future dates.
+- Missing check-in date.
+- Missing check-out date.
+- Invalid date formats.
+
+### Booking Retrieval (Boundary)
+
+- Booking ID of `0`.
+- Negative booking ID.
+- Very large booking ID.
+- Non-numeric booking ID.
+- Empty booking ID.
+
+### Additional Needs
+
+- Empty `additionalneeds`.
+- Very long `additionalneeds`.
+- Special characters in `additionalneeds`.
+
 ## 9. Integration Scenarios
+
+### API → UI / Browser Validation
+
+- Create a booking through the API and verify that the booking can be retrieved through the application/browser where applicable.
+- Retrieve booking data through the API and verify that corresponding data is displayed correctly through the application/browser where applicable.
+
+### API → API Data Flow
+
+- Create a booking through `POST /booking`, capture the generated booking ID, and use it in subsequent API requests.
+- Create a booking, retrieve it, and compare submitted data against persisted data.
+- Create a booking, update it, retrieve it again, and verify the updated data.
+
+### Authentication → Protected Operations
+
+- Generate an authentication token through `POST /auth` and use it for protected booking operations.
+- Verify that protected operations are rejected when authentication is missing or invalid.
+- Investigate the observed HTTP 403 behavior for PUT, PATCH, and DELETE operations.
+
+### End-to-End Booking Flow
+
+- Authenticate.
+- Create a booking.
+- Retrieve the booking.
+- Update the booking.
+- Verify the updated data.
+- Delete the booking.
+- Verify that the booking can no longer be retrieved.
+
+### Cross-Layer Test Strategy
+
+- Use API testing for backend validation and CRUD operations.
+- Use Playwright for browser-level validation where the UI provides meaningful coverage.
+- Use Playwright API capabilities for automated API and API/UI integration scenarios.
+- Avoid duplicating the same test unnecessarily across UI and API layers.
 
 ## 10. Initial Risks / Questions
 
-### Protected CRUD Operations
+### Authentication and Authorization
 
-PUT, PATCH, and DELETE operations returned HTTP 403 during reconnaissance despite successful authentication and token generation.
+- Why do PUT, PATCH, and DELETE return HTTP 403 despite successful authentication and token generation?
+- Is the documented cookie-based authentication method currently behaving as expected?
+- Should authenticated requests use an alternative authentication header or mechanism?
+- What is the expected behavior for expired or invalid authentication tokens?
 
-This behavior requires further investigation against the documented authentication contract before implementation of automated protected-operation tests.
+### Data Validation
+
+- Why do missing `firstname` or `lastname` fields result in HTTP 500 instead of a client-side validation response?
+- Why is an invalid `totalprice` value accepted and returned as `null`?
+- Why is an invalid `depositpaid` string value accepted and converted to `true`?
+- What validation rules are officially expected for booking fields?
+
+### Test Data and Environment
+
+- Booking data is dynamic and may change or disappear over time.
+- Tests must not depend on fixed booking IDs or a fixed number of records.
+- Test data should be created dynamically where possible.
+- The shared environment may introduce test instability or interference from other users.
+
+### Request Headers
+
+- Explicit `Accept: application/json` affected the observed behavior of `GET /booking/{id}`.
+- API tests should explicitly define required headers.
+- Header-dependent behavior should be included in API validation.
+
+### UI Coverage
+
+- Restful Booker is primarily an API-testing playground rather than a feature-rich customer-facing application.
+- UI automation should therefore be limited to meaningful browser-level scenarios.
+- API testing should remain the primary layer for CRUD and validation testing.
+
+### Automation Risks
+
+- Tests should remain independent and avoid relying on previously created data.
+- Tests should capture dynamically generated booking IDs.
+- Tests should clean up created data where the API permits it.
+- CI execution must account for the shared and potentially changing test environment.
+
+### Open Questions
+
+- What is the correct authentication mechanism for PUT, PATCH, and DELETE in the current environment?
+- Which API behaviors are documented requirements versus intentional characteristics of the test application?
+- Which observed behaviors should be treated as defects, limitations, or expected behavior?
+- Which scenarios provide the highest value for automated regression coverage?
