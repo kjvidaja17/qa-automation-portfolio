@@ -22,3 +22,16 @@ test('should return an authentication token with valid credentials', async ({ re
   expect(typeof token).toBe('string');
   expect(token).not.toHaveLength(0);
 });
+
+test('should reject an invalid username', async ({ request }) => {
+  const authHelper = new AuthHelper(request);
+  const password = process.env.RESTFUL_BOOKER_PASSWORD;
+
+  if (!password) {
+    throw new Error('Missing required environment variable: RESTFUL_BOOKER_PASSWORD');
+  }
+
+  await expect(authHelper.authenticate('invalid-username', password)).rejects.toThrow(
+    'Bad credentials',
+  );
+});

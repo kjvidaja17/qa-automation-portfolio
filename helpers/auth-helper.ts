@@ -2,6 +2,7 @@ import { APIRequestContext } from '@playwright/test';
 
 type AuthResponse = {
   token?: unknown;
+  reason?: unknown;
 };
 
 export class AuthHelper {
@@ -18,6 +19,10 @@ export class AuthHelper {
 
     const body = (await response.json()) as AuthResponse;
     if (typeof body.token !== 'string' || body.token.trim() === '') {
+      if (typeof body.reason === 'string') {
+        throw new Error(`Authentication failed: ${body.reason}`);
+      }
+
       throw new Error('Authentication response did not include a valid token');
     }
 
