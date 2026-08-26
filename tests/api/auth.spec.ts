@@ -35,3 +35,16 @@ test('should reject an invalid username', async ({ request }) => {
     'Bad credentials',
   );
 });
+
+test('should reject an invalid password', async ({ request }) => {
+  const authHelper = new AuthHelper(request);
+  const username = process.env.RESTFUL_BOOKER_USERNAME;
+
+  if (!username) {
+    throw new Error('Missing required environment variable: RESTFUL_BOOKER_USERNAME');
+  }
+
+  await expect(authHelper.authenticate(username, 'invalid-password')).rejects.toThrow(
+    'Bad credentials',
+  );
+});
