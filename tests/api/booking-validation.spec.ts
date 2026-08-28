@@ -102,3 +102,35 @@ test('should return 500 when lastname is omitted', async ({ request }) => {
 
   expect(response.status()).toBe(500);
 });
+
+test('should preserve an invalid booking date range', async ({ request }) => {
+  const apiClient = new ApiClient(request);
+  const bookingData = {
+    firstname: 'Riley',
+    lastname: 'Hayes',
+    totalprice: 230,
+    depositpaid: true,
+    bookingdates: {
+      checkin: '2027-03-10',
+      checkout: '2027-03-05',
+    },
+    additionalneeds: 'Breakfast',
+  };
+
+  const createResponse = await apiClient.post('/booking', {
+    data: bookingData,
+  });
+
+  await expect(createResponse).toBeOK();
+  const createBody = await createResponse.json();
+  expect(createBody.bookingid).toEqual(expect.any(Number));
+
+  const bookingId = createBody.bookingid as number;
+  const getResponse = await apiClient.get(`/booking/${bookingId}`);
+
+  await expect(getResponse).toBeOK();
+  const persistedBooking = await getResponse.json();
+
+  expect(persistedBooking.bookingdates.checkin).toBe('2027-03-10');
+  expect(persistedBooking.bookingdates.checkout).toBe('2027-03-05');
+});
