@@ -31,3 +31,34 @@ test('should handle an invalid totalprice data type', async ({ request }) => {
 
   expect(persistedBooking.totalprice).toBeNull();
 });
+
+test('should handle an invalid depositpaid data type', async ({ request }) => {
+  const apiClient = new ApiClient(request);
+  const bookingData = {
+    firstname: 'Jordan',
+    lastname: 'Blake',
+    totalprice: 180,
+    depositpaid: 'yes',
+    bookingdates: {
+      checkin: '2026-11-01',
+      checkout: '2026-11-06',
+    },
+    additionalneeds: 'Dinner',
+  };
+
+  const createResponse = await apiClient.post('/booking', {
+    data: bookingData,
+  });
+
+  await expect(createResponse).toBeOK();
+  const createBody = await createResponse.json();
+  expect(createBody.bookingid).toEqual(expect.any(Number));
+
+  const bookingId = createBody.bookingid as number;
+  const getResponse = await apiClient.get(`/booking/${bookingId}`);
+
+  await expect(getResponse).toBeOK();
+  const persistedBooking = await getResponse.json();
+
+  expect(persistedBooking.depositpaid).toBe(true);
+});
