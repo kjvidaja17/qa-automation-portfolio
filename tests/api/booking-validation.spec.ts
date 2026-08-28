@@ -62,3 +62,23 @@ test('should handle an invalid depositpaid data type', async ({ request }) => {
 
   expect(persistedBooking.depositpaid).toBe(true);
 });
+
+test('should return 500 when firstname is omitted', async ({ request }) => {
+  const apiClient = new ApiClient(request);
+  const bookingData = {
+    lastname: 'Parker',
+    totalprice: 210,
+    depositpaid: true,
+    bookingdates: {
+      checkin: '2026-12-01',
+      checkout: '2026-12-07',
+    },
+    additionalneeds: 'Lunch',
+  };
+
+  const response = await apiClient.post('/booking', {
+    data: bookingData,
+  });
+
+  expect(response.status()).toBe(500);
+});
