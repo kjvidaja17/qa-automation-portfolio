@@ -82,3 +82,23 @@ test('should return 500 when firstname is omitted', async ({ request }) => {
 
   expect(response.status()).toBe(500);
 });
+
+test('should return 500 when lastname is omitted', async ({ request }) => {
+  const apiClient = new ApiClient(request);
+  const bookingData = {
+    firstname: 'Casey',
+    totalprice: 195,
+    depositpaid: true,
+    bookingdates: {
+      checkin: '2027-01-05',
+      checkout: '2027-01-10',
+    },
+    additionalneeds: 'Dinner',
+  };
+
+  const response = await apiClient.post('/booking', {
+    data: bookingData,
+  });
+
+  expect(response.status()).toBe(500);
+});
