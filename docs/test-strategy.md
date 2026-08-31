@@ -17,7 +17,7 @@ The test strategy aims to:
 
 ### MVP Focus
 
-The first milestone will prioritize a small, reliable, well-documented regression suite over exhaustive coverage or implementation of every planned capability.
+The MVP prioritizes a small, reliable, well-documented regression suite over exhaustive coverage or maximizing the number of automated tests.
 
 ## 2. Scope
 
@@ -29,8 +29,8 @@ The following areas are included in the test strategy:
 
 - Valid authentication.
 - Invalid authentication.
-- Missing authentication credentials.
 - Authentication token handling.
+- Missing-credential behavior observed during reconnaissance.
 
 #### Booking Retrieval
 
@@ -53,19 +53,19 @@ The following areas are included in the test strategy:
 - Full booking updates using PUT.
 - Partial booking updates using PATCH.
 - Authentication and authorization behavior.
-- Verification of updated data.
+- Verification of updated and unchanged data.
 
 #### Booking Deletion
 
-- Booking deletion.
-- Authentication and authorization behavior.
-- Verification that deleted bookings cannot be retrieved.
+- Authenticated DELETE behavior.
+- Verification of the current HTTP 403 response.
+- Verification that a booking remains retrievable after a blocked DELETE request.
 
 #### Cross-Layer Testing
 
-- API-to-API workflows.
-- API-to-browser validation where meaningful.
-- End-to-end booking workflows where supported by the application.
+- Multi-step API workflows that validate state across related operations.
+- Targeted browser-level validation where the UI provides meaningful additional coverage.
+- End-to-end browser workflows only where the interaction can be reproduced reliably.
 
 #### Quality Attributes
 
@@ -81,6 +81,7 @@ The following areas are outside the initial scope of this portfolio:
 
 - Exhaustive UI automation of the browser interface.
 - Visual or pixel-level UI validation.
+- Full automation of the room-booking calendar interaction until its drag-based date-range selection can be reproduced deterministically in Playwright.
 - Load, stress, and endurance testing.
 - Performance benchmarking of the Restful Booker infrastructure.
 - Full security or penetration testing.
@@ -88,7 +89,7 @@ The following areas are outside the initial scope of this portfolio:
 - Database-level testing without an exposed test interface.
 - Exhaustive testing of every possible input combination.
 - Production-level reliability testing of the shared Restful Booker environment.
-- Testing features that are not exposed through the documented application or API.
+- Testing functionality that is not exposed through the available application or API interfaces.
 
 ## 4. Risk-Based Priorities
 
@@ -98,7 +99,9 @@ Testing priority will be based on business impact, likelihood of failure, data-i
 
 #### Authentication and Authorization
 
-PUT, PATCH, and DELETE operations returned HTTP 403 during reconnaissance despite successful token generation. This behavior requires further investigation and verification.
+Protected booking operations require authentication. During reconnaissance, authenticated PUT and PATCH initially returned HTTP 403 but later succeeded with HTTP 200. Authenticated DELETE continues to return HTTP 403 in the shared environment.
+
+The differing results make protected-operation behavior an important area for continued monitoring and regression coverage.
 
 #### Data Validation
 
@@ -108,9 +111,13 @@ Invalid input was accepted in several scenarios, including:
 - Invalid `depositpaid` data type being converted to `true`.
 - Missing `firstname` or `lastname` resulting in HTTP 500.
 
+These behaviors represent validation and data-integrity risks.
+
 #### Data Integrity
 
-Created booking data must match the data persisted and subsequently retrieved from the API.
+Created and updated booking data must match the values returned by subsequent retrieval operations.
+
+The automation suite therefore verifies persisted state in addition to response status codes.
 
 ### Medium Priority
 
@@ -141,58 +148,57 @@ The project will prioritize tests that are:
 
 ### 5.1 API-Level Testing
 
-API testing will be the primary test level for this project because Restful Booker is primarily an API-focused application.
+API testing is the primary test level for this project because Restful Booker is primarily an API-focused application.
 
-API-level testing will cover:
+API-level testing covers:
 
 - Authentication and token generation.
-- Booking retrieval.
-- Booking creation.
-- Booking updates using PUT and PATCH.
-- Booking deletion.
-- Request and response validation.
-- Required-field validation.
-- Data-type validation.
-- Boundary and negative scenarios.
+- Booking retrieval and filtering.
+- Booking creation and persistence.
+- Full booking updates using PUT.
+- Partial booking updates using PATCH.
+- Negative and validation scenarios.
 - HTTP status codes and error responses.
 - Data persistence and integrity.
 
 #### Primary Tools (API)
 
-- Postman for API exploration, request validation, and collection-based testing.
-- Playwright APIRequest for automated API regression testing and CI execution.
+- Postman for API exploration, manual validation, and investigation of API behavior.
+- Playwright APIRequestContext for automated API regression testing and CI execution.
 
 ### 5.2 Integration Testing
 
-Integration tests will verify interactions between related system operations rather than testing individual requests in isolation.
+Integration tests validate multi-step workflows involving multiple API operations and confirm that state remains consistent across those operations.
 
-Examples include:
+Current integration coverage includes:
 
-- Create booking → retrieve booking → compare data.
-- Create booking → update booking → retrieve and verify updated data.
-- Authenticate → perform protected booking operation.
-- Create booking through API → validate through the browser only where the available UI provides meaningful additional coverage.
-- Delete booking → verify the booking can no longer be retrieved.
+- `INT-001`: Create → Filter → Retrieve.
+- `INT-002`: Create → PUT → PATCH → Retrieve.
 
-Integration tests will focus on data flow, authentication, persistence, and consistency between system layers.
+Integration testing focuses on:
+
+- Data flow across related operations.
+- Authentication within protected workflows.
+- Persistence across multiple requests.
+- State transitions.
+- Consistency between operations.
 
 #### Primary Tools (Integration)
 
-- TypeScript + Playwright APIRequest.
-- Playwright browser capabilities where UI validation adds meaningful coverage.
+- TypeScript + Playwright `APIRequestContext`.
 
 ### 5.3 Browser / UI-Level Testing
 
-Browser testing will be intentionally limited because Restful Booker is primarily an API-testing playground rather than a feature-rich customer-facing application.
+Browser testing is intentionally limited because Restful Booker is primarily an API-focused application.
 
-Browser-level testing will focus only on scenarios where UI validation provides value beyond API testing.
+Current UI automation covers:
 
-Potential coverage includes:
+- Contact form submission and confirmation.
+- Admin authentication and access to the protected dashboard.
 
-- Verifying application availability through a browser.
-- Validating meaningful browser-level booking behavior where supported.
-- API-to-browser validation of booking data where applicable.
-- End-to-end workflows where browser interaction provides additional risk coverage.
+Browser automation is used selectively when user-facing or browser-specific behavior provides meaningful additional coverage.
+
+The room-booking calendar was investigated during reconnaissance but is currently deferred because its drag-based date-range interaction could not be reproduced deterministically in Playwright.
 
 #### Primary Tools (UI)
 
@@ -203,48 +209,45 @@ Potential coverage includes:
 Tests should be implemented at the lowest appropriate level that provides reliable and meaningful coverage.
 
 - Use API tests when backend behavior can be validated without the browser.
-- Use integration tests when interaction between operations or system layers is the primary risk.
-- Use browser tests when user-facing behavior or browser-specific behavior adds meaningful coverage.
-- Avoid duplicating identical assertions across API and UI tests without a specific risk-based justification.
+- Use integration tests when the primary risk involves interaction between multiple operations or state transitions.
+- Use browser tests when user-facing or browser-specific behavior adds meaningful coverage.
+- Avoid duplicating identical assertions across test levels without a specific risk-based justification.
 
-The initial automation suite will therefore contain more API tests, fewer integration tests, and a small number of targeted browser tests.
+The current test suite therefore intentionally contains more API tests, fewer integration tests, and a small number of targeted browser tests.
 
 ## 6. Tool Strategy
 
 ### 6.1 Postman
 
-Postman will be used primarily for API exploration, manual API validation, and collection-based testing.
+Postman is used primarily for API exploration, manual validation, and investigation of application behavior.
 
-Postman will be used to:
+Postman is used to:
 
 - Explore API endpoints and document request/response behavior.
 - Validate authentication and token generation.
-- Build reusable API request collections.
 - Validate HTTP status codes and response bodies.
-- Test positive, negative, and boundary scenarios.
-- Validate request headers, parameters, and payloads.
+- Investigate request headers, parameters, and payloads.
+- Explore positive, negative, and boundary scenarios.
 - Investigate unexpected API behavior before automating it.
-- Demonstrate API testing techniques using Postman.
 
-Postman will serve as the primary tool for exploratory API testing and for establishing expected API behavior before implementing automated regression tests.
+Postman supports exploratory testing and API investigation, while automated regression coverage is maintained in Playwright.
 
 ### 6.2 TypeScript + Playwright
 
-Playwright with TypeScript will be used as the primary automation framework.
+Playwright with TypeScript is the primary automation framework for the project.
 
-Playwright will be used to:
+Playwright is used to:
 
-- Automate API regression tests through Playwright APIRequest.
-- Automate integration workflows involving multiple API operations.
+- Automate API regression tests through `APIRequestContext`.
+- Automate multi-step API integration workflows.
 - Validate API responses and persisted data.
-- Implement browser-level tests where UI coverage provides meaningful value.
-- Execute tests across supported browser configurations where applicable.
-- Generate test reports and diagnostic artifacts.
-- Support CI/CD execution through GitHub Actions.
+- Implement targeted browser-level tests where UI coverage provides meaningful value.
+- Generate HTML test reports and diagnostic artifacts.
+- Support CI execution through GitHub Actions.
 
-The Playwright implementation will follow maintainable automation practices, including:
+The Playwright implementation follows maintainable automation practices, including:
 
-- Reusable test fixtures.
+- Reusable helpers and fixtures.
 - Centralized configuration.
 - Reliable assertions.
 - Dynamic test data.
@@ -254,36 +257,39 @@ The Playwright implementation will follow maintainable automation practices, inc
 
 ### 6.3 TypeScript
 
-TypeScript will be the primary programming language for the automation framework.
+TypeScript is the primary programming language for the automation framework.
 
-TypeScript will be used to:
+TypeScript is used to:
 
 - Implement Playwright API and browser tests.
-- Create reusable helper functions and fixtures.
-- Manage test data and configuration.
+- Build reusable helpers and fixtures.
+- Define test data and configuration.
 - Improve maintainability through static typing.
-- Support scalable automation architecture.
 
 ### 6.4 GitHub Actions
 
-GitHub Actions will be used for continuous integration and automated regression execution.
+GitHub Actions is used for continuous integration and automated regression execution.
 
-The CI workflow will:
+The current CI workflow:
 
-- Install project dependencies.
-- Execute automated API tests.
-- Execute selected browser/integration tests.
-- Generate test reports.
-- Preserve relevant test artifacts for failed runs.
-- Provide a consistent automated test execution environment.
+- Checks out the repository.
+- Sets up Node.js 24.
+- Installs dependencies using `npm ci`.
+- Runs the TypeScript typecheck.
+- Installs Playwright browsers and system dependencies.
+- Executes the full 19-test suite.
+- Uploads the Playwright HTML report as a workflow artifact.
+- Uploads `test-results/` when the workflow fails and results are available.
+
+Authentication credentials are supplied through GitHub Actions repository secrets and are not committed to the repository.
 
 ### 6.5 AI-Assisted QA
 
-AI will be used as a supporting capability rather than as a replacement for human QA judgment.
+AI is used as a supporting capability rather than as a replacement for human QA judgment.
 
-AI-assisted activities may include:
+AI may assist with:
 
-- Generating candidate test scenarios from requirements.
+- Generating candidate test scenarios.
 - Identifying potential edge cases.
 - Reviewing test cases for coverage gaps.
 - Reviewing automated tests for weak or missing assertions.
@@ -291,33 +297,33 @@ AI-assisted activities may include:
 - Assisting with defect analysis and root-cause hypotheses.
 - Reviewing test data for potential risks.
 
-AI-generated suggestions will be reviewed and validated by the QA engineer before being incorporated into the test strategy or automated test suite.
+AI-generated suggestions are reviewed and validated by the QA engineer before being incorporated into the test strategy or automated test suite.
 
 ### 6.6 Tool Allocation Principles
 
 The same scenario should not automatically be implemented in every tool.
 
-- Use Postman when exploratory API analysis or manual API validation provides the greatest value.
-- Use Playwright APIRequest when the scenario belongs in automated API regression.
+- Use Postman for exploratory API analysis and manual validation.
+- Use Playwright APIRequestContext for automated API regression.
 - Use Playwright browser automation when user-facing or browser-specific behavior provides additional risk coverage.
-- Use GitHub Actions to continuously execute selected automated tests.
+- Use GitHub Actions for continuous automated execution.
 - Use AI when it provides meaningful assistance in test design, analysis, or maintenance.
 
-The final test suite will prioritize maintainability, reliability, and risk coverage over maximizing the number of tools or automated tests.
+The final test suite prioritizes maintainability, reliability, and risk coverage over maximizing the number of tools or automated tests.
 
 ## 7. Test Data Strategy
 
 ### 7.1 Dynamic Test Data
 
-The automated test suite will avoid relying on fixed booking IDs or long-lived records.
+The automated test suite avoids relying on fixed booking IDs or long-lived records.
 
-Where possible, tests will:
+Where practical, tests:
 
 - Create their own booking data before testing.
 - Capture the generated `bookingid`.
 - Use the generated ID for subsequent operations.
 - Verify the resulting data.
-- Clean up created records when the API and current authentication behavior permit it.
+- Avoid relying on cleanup when the shared environment does not permit reliable deletion.
 
 ### 7.2 Test Data Independence
 
@@ -333,7 +339,7 @@ A test should be able to establish the data it requires rather than assuming tha
 
 ### 7.3 Reusable Test Data
 
-Common valid booking data will be maintained in reusable test-data structures rather than duplicated throughout individual tests.
+Reusable test data and helper structures should be used where they improve consistency and maintainability.
 
 Test data should support:
 
@@ -347,15 +353,15 @@ Sensitive values such as authentication credentials and tokens will not be hard-
 
 ### 7.4 Authentication Data
 
-Authentication credentials will be stored outside the committed source code where appropriate.
+Authentication credentials are stored outside the committed source code where appropriate.
 
-Authentication tokens will be generated during test execution rather than hard-coded.
+Authentication tokens are generated during test execution rather than hard-coded.
 
-Tests involving protected operations will obtain fresh authentication data as required.
+Tests involving protected operations obtain fresh authentication data as required.
 
 ### 7.5 Negative Test Data
 
-Negative tests will deliberately provide invalid or unexpected values, including:
+Negative tests deliberately provide invalid or unexpected values, including:
 
 - Missing required fields.
 - Incorrect data types.
@@ -375,34 +381,39 @@ Therefore:
 
 - Tests should minimize assumptions about existing records.
 - Tests should create data dynamically whenever practical.
-- Tests should avoid modifying unrelated records.
-- Tests should clean up test data when supported.
-- CI failures caused by external environment changes should be distinguishable from product/test failures.
+- Tests should avoid interfering with unrelated records.
+- Tests should minimize dependence on cleanup because authenticated DELETE is currently blocked in the shared environment.
+- CI failures caused by external environment changes should be distinguishable from product or test failures.
 
 ### 7.7 Data Validation
 
-For create and update operations, tests will validate both the response and the resulting persisted data.
+For create and update operations, tests validate both the response and the resulting persisted data.
 
-Where applicable, the strategy will use:
+Where applicable, the strategy uses:
 
 `Create → capture ID → retrieve → compare`
 
-This will help detect cases where an API returns a successful response but persists an unexpected value.
+This helps detect cases where an API returns a successful response but persists an unexpected value.
 
 ## 8. Test Environment
 
 ### 8.1 Application Under Test
 
-The primary system under test is the publicly accessible Restful Booker API.
+The primary system under test is the publicly accessible Restful Booker application and API.
 
-**Base URL:**
+**API Base URL:**
+
 `https://restful-booker.herokuapp.com`
 
-The application provides the API endpoints documented in the QA reconnaissance.
+**UI Base URL:**
+
+`https://automationintesting.online/`
+
+The API and browser interfaces provide the functionality documented in the QA reconnaissance.
 
 ### 8.2 Local Development Environment
 
-The automation project will be developed and executed locally using:
+The automation project is developed and executed locally using:
 
 - Windows development environment.
 - Node.js.
@@ -415,28 +426,30 @@ The automation project will be developed and executed locally using:
 
 ### 8.3 Automation Environment
 
-The Playwright automation framework will use a centralized configuration file to define:
+The Playwright framework uses the centralized `playwright.config.ts` configuration to define:
 
-- Base URL.
-- Browser configuration.
-- Test execution settings.
-- Reporting configuration.
-- Timeout settings.
-- Environment-specific behavior where required.
+- Test directory.
+- API base URL.
+- CI-specific retries and worker settings.
+- HTML reporting.
+- Failure screenshots.
+- Retry traces.
+- CI behavior through the `CI` environment variable.
 
-Environment-specific values should be configurable rather than embedded throughout individual test files.
+Environment-specific values are supplied through environment variables and are referenced by the test code rather than embedded in individual test files.
 
 ### 8.4 Configuration and Secrets
 
 Credentials, authentication tokens, and other environment-specific secrets must not be committed to the public repository.
 
-Where required, configuration values will be supplied through:
+Local authentication credentials are supplied through the `.env` file using:
 
-- Environment variables.
-- Local environment configuration.
-- GitHub Actions secrets for CI execution.
+- `RESTFUL_BOOKER_USERNAME`
+- `RESTFUL_BOOKER_PASSWORD`
 
-Test code should reference configuration values rather than hard-coded credentials.
+GitHub Actions supplies the same values through repository secrets.
+
+Test code references environment variables rather than hard-coded credentials.
 
 ### 8.5 Shared Environment Considerations
 
@@ -445,34 +458,37 @@ Restful Booker is a shared and dynamic test environment.
 Therefore:
 
 - Existing booking data must not be assumed to remain unchanged.
-- Tests should create or discover the data they require.
-- Tests should avoid interfering with unrelated records.
-- Tests should minimize dependence on execution order.
-- Failures caused by external environment changes should be distinguishable from actual test failures.
+- Tests create or discover the data they require.
+- Tests avoid relying on fixed booking IDs.
+- Tests minimize interference with unrelated records.
+- Tests minimize dependence on execution order.
+- Failures caused by external environment changes should be distinguished from actual test or application failures.
 
 ### 8.6 Local and CI Consistency
 
-Local and CI test execution should use the same:
+Local and CI test execution use the same:
 
 - Test code.
 - Playwright configuration.
 - Test-data strategy.
 - Assertion logic.
-- Environment configuration approach.
+- Environment-variable approach.
 
-Differences between local and CI execution should be limited to environment-specific settings such as secrets, workers, or reporting.
+CI-specific differences are limited to environment-specific settings such as secrets, worker count, retries, and reporting behavior.
 
 ### 8.7 Test Reporting and Artifacts
 
-Automated execution should produce useful diagnostic information, including where applicable:
+Automated execution can produce diagnostic information including:
 
-- Test results.
-- HTML reports.
+- Playwright HTML reports.
 - Screenshots for failed browser tests.
-- Playwright traces for debugging.
-- Other relevant CI artifacts.
+- Playwright traces when configured for retries.
+- Test result files.
+- GitHub Actions workflow artifacts.
 
-Generated artifacts such as `test-results/` and `playwright-report/` should not be committed to source control unless a specific portfolio requirement makes them necessary.
+Generated directories such as `test-results/` and `playwright-report/` are excluded from source control.
+
+GitHub Actions uploads the Playwright HTML report for each run when available and uploads test results when the workflow fails and results are available.
 
 ### 8.8 Environment Limitations
 
@@ -484,15 +500,17 @@ The shared Restful Booker environment may experience:
 - Temporary service or network issues.
 - Behavior that differs from a controlled production-like environment.
 
-These limitations should be considered when interpreting failures and designing automated regression tests.
+These limitations are considered when interpreting failures and designing automated regression tests.
+
+The room-booking calendar also has a browser-automation reproducibility limitation: the drag-based date-range interaction has not yet been reproduced deterministically in Playwright. Full calendar automation is therefore deferred.
 
 ## 9. Automation Strategy
 
 ### 9.1 Automation Objectives
 
-The automation framework will focus on reliable, maintainable regression coverage for high-risk and frequently reusable scenarios.
+The automation framework focuses on reliable, maintainable regression coverage for high-risk and frequently reusable scenarios.
 
-Automation will prioritize:
+Automation prioritizes:
 
 - Authentication.
 - Booking creation and retrieval.
@@ -505,58 +523,55 @@ Automation will prioritize:
 
 ### 9.2 Framework
 
-The primary automation framework will use:
+The primary automation framework uses:
 
 - TypeScript.
 - Playwright Test.
-- Playwright APIRequest for API automation.
+- Playwright `APIRequestContext` for API automation.
 - Playwright browser automation for selected UI scenarios.
 
-The framework will be designed to support both API and browser testing within a consistent project structure.
+The framework supports API and browser testing within a consistent project structure.
 
 ### 9.3 Test Organization
 
-Tests will be organized by functional area rather than by individual HTTP method alone.
+Tests are organized by functional area rather than by individual HTTP method alone.
 
-Initial organization may include:
+The current organization includes:
 
 - Authentication tests.
 - Booking retrieval tests.
 - Booking creation tests.
 - Booking validation tests.
 - Booking update tests.
-- Booking deletion tests.
 - Integration tests.
 - Browser/UI tests.
 
-Test names should clearly describe the behavior being validated.
+Test names clearly describe the behavior being validated.
 
 ### 9.4 Reusable Components
 
-The framework will use reusable components where they provide clear value, including:
+The framework uses reusable components where they provide clear value, including:
 
 - API helper functions.
 - Test fixtures.
-- Test-data builders or factories.
 - Authentication helpers.
 - Shared configuration.
-- Reusable validation utilities.
 
-Abstraction should be introduced only when it improves maintainability and readability.
+Abstraction is introduced only when it improves maintainability and readability.
 
 ### 9.5 Dynamic Test Data
 
-Tests will generate or discover required booking data dynamically.
+Tests generate or discover the booking data required for their workflows.
 
-The framework should:
+The framework:
 
-1. Create or locate required test data.
-2. Capture generated booking IDs.
-3. Use those IDs within the current test flow.
-4. Validate the resulting state.
-5. Clean up created data where supported.
+1. Creates or locates required test data.
+2. Captures generated booking IDs.
+3. Uses those IDs within the current test flow.
+4. Validates the resulting state.
+5. Avoids relying on cleanup when deletion is not reliably supported by the shared environment.
 
-Hard-coded booking IDs will be avoided because the shared environment is dynamic.
+Hard-coded booking IDs are avoided because the shared environment is dynamic.
 
 ### 9.6 Test Independence
 
@@ -567,53 +582,53 @@ Tests should:
 - Avoid relying on execution order.
 - Avoid relying on another test's created data.
 - Establish required preconditions.
-- Clean up test data where appropriate.
+- Avoid relying on cleanup when deletion is not reliably supported.
 - Use deterministic assertions.
 - Minimize dependencies on shared environment state.
 
 ### 9.7 Assertions
 
-Assertions will validate meaningful system behavior rather than only confirming that a request completed.
+Assertions validate meaningful system behavior rather than only confirming that a request completed.
 
-Assertions may include:
+Assertions include:
 
-- HTTP status code.
+- HTTP status codes.
 - Response structure.
 - Required fields.
 - Field values.
 - Data types.
 - Persisted data.
 - Error responses.
-- Business-rule behavior.
 - Cross-request consistency.
 
-A successful HTTP status alone will not be considered sufficient evidence of a successful test when data integrity can also be validated.
+A successful HTTP status alone is not considered sufficient evidence of a successful test when data integrity can also be validated.
 
 ### 9.8 API/UI Integration
 
-API/UI integration will be implemented only where the Restful Booker browser interface provides meaningful behavior beyond API-level validation.
+API-to-UI integration is not part of the current automated regression suite.
 
-The primary integration layer will therefore remain API-to-API workflows, with targeted browser integration where justified.
+The current integration layer focuses on API-to-API workflows, while browser automation is maintained separately for targeted UI scenarios.
+
+Future API-to-UI coverage would only be introduced where the browser interface provides meaningful additional validation and the workflow can be automated reliably.
 
 ### 9.9 Error and Diagnostic Handling
 
-Automated tests should provide useful diagnostic information when failures occur.
+Automated tests provide useful diagnostic information when failures occur.
 
-Where applicable, the framework will capture:
+Where applicable, the framework captures:
 
-- Request/response information.
 - Playwright traces.
 - Screenshots for browser failures.
 - HTML reports.
 - CI test artifacts.
 
-Tests should fail with clear and actionable assertion messages.
+Tests fail with clear and actionable assertion messages.
 
 ### 9.10 CI Compatibility
 
-The automation framework will be designed for both local and CI execution.
+The automation framework supports both local and CI execution.
 
-Tests should:
+Tests:
 
 - Avoid machine-specific file paths.
 - Avoid hard-coded credentials.
@@ -623,19 +638,22 @@ Tests should:
 
 ### 9.11 Automation Scope
 
-The initial MVP will prioritize approximately:
+The current automated regression suite contains:
 
-- 12–15 API tests.
-- 3–5 integration tests.
-- 2–3 targeted browser/UI tests.
+- 15 API tests.
+- 2 integration tests.
+- 2 targeted browser/UI tests.
+- 19 automated tests in total.
 
-The exact number may change based on test value, duplication, and reliability.
+The automation scope is intentionally focused on high-value, reliable scenarios rather than maximizing test count.
 
-The goal is meaningful regression coverage rather than maximizing test count.
+Room-booking calendar automation is currently deferred because the drag-based date-range interaction could not be reproduced deterministically in Playwright.
+
+Authenticated DELETE remains outside successful lifecycle automation because the current shared environment returns HTTP 403 and leaves the booking retrievable.
 
 ### 9.12 Maintainability Principles
 
-The framework will prioritize:
+The framework prioritizes:
 
 - Readability.
 - Reusability.
@@ -653,9 +671,9 @@ Automation complexity should be justified by the testing value it provides.
 
 ### 10.1 Purpose
 
-AI will be used as a supporting capability within the QA process to improve test design, test coverage, analysis, and maintenance.
+AI is used as a supporting capability within the QA process to assist with test design, test coverage analysis, automation review, and failure analysis.
 
-AI-generated outputs will not be treated as authoritative. Final testing decisions, expected results, defect classifications, and test acceptance will remain the responsibility of the QA engineer.
+AI-generated outputs are not treated as authoritative. Final testing decisions, expected results, defect classifications, and test acceptance remain the responsibility of the QA engineer.
 
 ### 10.2 AI-Assisted Test Design
 
@@ -676,7 +694,7 @@ Potential AI-generated scenarios may include:
 - Data-integrity scenarios.
 - Authentication and authorization scenarios.
 
-The QA engineer will review generated scenarios for correctness, relevance, duplication, and risk coverage before adding them to the test suite.
+The QA engineer reviews generated scenarios for correctness, relevance, duplication, and risk coverage before adding them to the test suite.
 
 ### 10.3 AI-Assisted Edge-Case Discovery
 
@@ -768,7 +786,7 @@ AI will not be used as the sole source of truth for testing decisions.
 
 ### 10.9 AI Transparency
 
-AI-assisted activities used in the portfolio will be documented where appropriate.
+AI-assisted activities used in the portfolio are documented where appropriate.
 
 The portfolio will distinguish between:
 
@@ -795,109 +813,110 @@ Only synthetic or publicly appropriate test information will be used for AI-assi
 
 ### 10.11 AI MVP Scope
 
-The initial portfolio milestone will demonstrate two primary AI-assisted QA workflows:
+The portfolio may demonstrate AI-assisted QA through two primary workflows:
 
 1. AI-assisted test case review and edge-case discovery.
 2. AI-assisted analysis of automated test failures and potential root causes.
 
-Additional AI-assisted capabilities may be added later if they provide meaningful testing value.
+Any AI-assisted output included in the portfolio will be reviewed and validated by the QA engineer before being treated as a testing decision or defect conclusion.
 
 ## 11. CI/CD Strategy
 
 ### 11.1 Purpose
 
-GitHub Actions will be used to automatically execute the automated QA test suite whenever relevant changes are pushed to the repository or submitted through a pull request.
+GitHub Actions provides continuous integration for the automated QA suite by executing the project's typecheck and Playwright regression tests in a consistent CI environment.
 
-The CI pipeline will provide consistent test execution and early detection of regressions.
+The CI pipeline helps detect regressions and environment-specific issues before changes are integrated.
 
 ### 11.2 CI Workflow
 
-The initial CI workflow will follow this general process:
+The current CI workflow:
 
-1. Check out the repository.
-2. Set up the required Node.js environment.
-3. Install project dependencies.
-4. Install required Playwright browsers and dependencies.
-5. Configure environment variables and secrets.
-6. Execute automated API tests.
-7. Execute selected integration and browser tests.
-8. Generate test reports.
-9. Upload relevant test artifacts.
-10. Mark the workflow as passed or failed based on test results.
+1. Checks out the repository.
+2. Sets up Node.js 24 on `ubuntu-latest`.
+3. Installs project dependencies using `npm ci`.
+4. Runs the TypeScript typecheck using `npm run typecheck`.
+5. Installs Playwright browsers and system dependencies.
+6. Supplies Restful Booker credentials through GitHub Actions repository secrets.
+7. Executes the full 19-test Playwright suite using `npm test`.
+8. Uploads the Playwright HTML report as a workflow artifact.
+9. Uploads `test-results/` when the workflow fails and results are available.
 
 ### 11.3 Trigger Conditions
 
-The CI workflow will initially run on:
+The CI workflow runs on:
 
 - Pushes to the `main` branch.
 - Pull requests targeting the `main` branch.
 
-Additional scheduled execution may be introduced later if it provides meaningful regression coverage.
-
 ### 11.4 Test Execution Strategy
 
-CI execution will prioritize fast and reliable tests first.
+The CI pipeline executes the complete automated regression suite rather than maintaining separate API, integration, and UI CI jobs.
 
-The initial order will be:
+The current suite contains:
 
-1. API tests.
-2. Integration tests.
-3. Selected browser/UI tests.
+- 15 API tests.
+- 2 integration tests.
+- 2 targeted browser/UI tests.
 
-API tests will provide the primary regression signal because the Restful Booker application is primarily API-focused.
+The Playwright configuration applies CI-specific settings including:
+
+- `CI=true`.
+- Single-worker execution.
+- Up to two retries for failed tests.
+- HTML reporting.
+- Failure screenshots.
+- Traces on the first retry.
 
 ### 11.5 Environment Configuration
 
-CI-specific configuration will be supplied through GitHub Actions environment variables or secrets where appropriate.
+CI credentials are supplied through GitHub Actions repository secrets:
 
-The workflow must not contain:
+- `RESTFUL_BOOKER_USERNAME`
+- `RESTFUL_BOOKER_PASSWORD`
 
-- Hard-coded credentials.
-- Authentication tokens.
-- Private keys.
-- Other sensitive values.
-
-Environment-specific configuration should remain separate from test logic.
+Credentials and authentication tokens are not hard-coded into the workflow or committed to the repository.
 
 ### 11.6 Test Data in CI
 
-CI tests will follow the same dynamic test-data strategy used for local execution.
+CI tests use the same dynamic test-data strategy as local execution.
 
-Tests should:
+Tests:
 
 - Create required booking data dynamically.
 - Capture generated booking IDs.
 - Avoid relying on persistent shared records.
-- Minimize interference with other users.
-- Clean up test data where supported.
+- Minimize dependence on execution order.
+- Avoid relying on cleanup when deletion is not reliably supported by the shared environment.
 
-### 11.7 Parallel Execution
+### 11.7 CI Concurrency
 
-Parallel execution may be enabled where tests are independent and the shared environment can support concurrent requests reliably.
+The CI workflow uses a single Playwright worker.
 
-Tests that interact with the same booking or shared state must not be executed concurrently unless their isolation is guaranteed.
+This reduces concurrency against the shared Restful Booker environment and helps minimize interference between tests that create or modify booking data.
 
-Parallelism will therefore be introduced based on test reliability rather than maximum execution speed.
+Local execution may use multiple workers where supported by the environment.
 
 ### 11.8 Failure Diagnostics
 
-When CI tests fail, the workflow should preserve useful diagnostic information where applicable, including:
+The CI workflow preserves diagnostic information for investigation.
+
+Available artifacts include:
 
 - Playwright HTML reports.
-- Test result files.
-- Screenshots from failed browser tests.
-- Playwright traces.
-- Relevant logs.
+- `test-results/` when a workflow failure produces test results.
+- Screenshots for failed browser tests.
+- Playwright traces when a retry occurs.
 
-The goal is to allow failures to be investigated without reproducing every failure locally.
+These artifacts allow failures to be investigated without requiring every failure to be reproduced locally.
 
 ### 11.9 CI Quality Gate
 
-The CI pipeline will fail when required automated tests fail.
+The CI pipeline fails when the required typecheck or automated Playwright tests fail.
 
-A successful pipeline indicates that the configured regression suite passed in the CI environment.
+A successful workflow indicates that the configured regression suite passed in the CI environment.
 
-A failed pipeline requires investigation before the associated change is considered ready for integration.
+A failed workflow requires investigation before the associated change is considered ready for integration.
 
 ### 11.10 Shared Environment Limitations
 
@@ -905,78 +924,77 @@ Because Restful Booker is a shared and changing environment, a CI failure may re
 
 - Application availability issues.
 - Shared test-data changes.
-- External interference.
 - Environment resets.
 - Network failures.
-- Actual application defects.
+- External interference.
+- Application defects.
 - Test implementation defects.
 
-The test team must distinguish environmental failures from product failures before treating a CI failure as a confirmed defect.
+CI failures should therefore be investigated to distinguish environmental issues from genuine test or application failures.
 
 ### 11.11 Future CI Enhancements
 
-Future improvements may include:
+Potential future improvements include:
 
-- Scheduled nightly regression runs.
-- Separate smoke and full regression workflows.
-- Browser matrix execution.
-- Test retries for controlled transient failures.
-- Parallel test sharding.
+- Scheduled regression runs.
+- Separate smoke and full-regression workflows.
+- Multi-browser CI execution.
+- Test sharding where reliable.
 - Additional reporting integrations.
 - Automated publishing of test results.
 
-These enhancements will only be introduced when they provide meaningful value without reducing test reliability.
+Future CI enhancements should be introduced only when they provide meaningful value without reducing test reliability.
 
 ## 12. Entry / Exit Criteria
 
 ### 12.1 Entry Criteria
 
-Testing may begin when:
+Testing can begin when:
 
 - The application/API is available.
-- The required test environment configuration is available.
-- Required dependencies are installed successfully.
-- Test data requirements are understood.
-- The relevant test scenarios have been reviewed and prioritized.
+- Required environment configuration is available.
+- Project dependencies are installed successfully.
 - Required authentication information is available through approved configuration mechanisms.
-- The automated test framework is able to execute successfully in the target environment.
+- Relevant test scenarios have been reviewed and prioritized.
+- Required test data can be created or discovered.
+- The automated test framework can execute successfully in the target environment.
 
 ### 12.2 Automation Entry Criteria
 
-A scenario should be considered ready for automation when:
+A scenario is ready for automation when:
 
-- The expected behavior is sufficiently understood.
+- Expected behavior is sufficiently understood.
 - The scenario provides meaningful regression value.
 - The test can be executed reliably in the available environment.
 - Required test data can be created or discovered dynamically.
 - Expected results can be validated through reliable assertions.
-- The scenario is suitable for the selected test level and tool.
+- The scenario is appropriate for the selected test level and tool.
 
 ### 12.3 Exit Criteria
 
-Testing for a planned scope may be considered complete when:
+Testing for a planned scope is considered complete when:
 
 - All prioritized test scenarios have been executed.
 - Critical and high-priority failures have been investigated.
 - Confirmed defects have been documented appropriately.
-- Required automated tests are passing.
+- Required automated tests are passing, or known environment limitations have been documented.
 - Test results and relevant evidence have been reviewed.
-- Known environment-related failures have been identified and separated from product defects.
+- Environment-related failures have been distinguished from product or test failures.
 - Required test documentation has been updated.
-- CI execution has completed successfully where CI execution is part of the scope.
+- CI execution has completed successfully when CI execution is part of the scope.
 
 ### 12.4 Portfolio Completion Criteria
 
-The initial portfolio milestone will be considered complete when:
+The current portfolio milestone is considered complete when:
 
 - The prioritized API regression suite is implemented.
-- Integration scenarios are implemented where supported.
+- Multi-step integration scenarios are implemented where supported.
 - Targeted browser tests are implemented where they provide meaningful value.
-- Tests execute successfully locally.
-- Tests execute through GitHub Actions.
-- Reports and failure diagnostics are available.
-- AI-assisted QA examples are documented.
-- The repository contains sufficient documentation to explain the test strategy and automation approach.
+- The automated tests execute successfully locally.
+- The automated tests execute successfully through GitHub Actions.
+- Test reports and failure diagnostics are available.
+- AI-assisted QA practices are documented.
+- The repository contains sufficient documentation to explain the test strategy, automation approach, and known limitations.
 
 ### Expected vs Observed Behavior
 
@@ -1005,16 +1023,17 @@ The Restful Booker environment is shared and dynamic. Existing records may chang
 
 ### 13.2 Authentication Behavior
 
-**Risk:**  
-PUT, PATCH, and DELETE returned HTTP 403 during reconnaissance despite successful token generation.
+**Risk:**
+
+Protected-operation behavior was inconsistent during reconnaissance. Authenticated PUT and PATCH initially returned HTTP 403 but later succeeded with HTTP 200. Authenticated DELETE continues to return HTTP 403 in the shared environment.
 
 **Mitigation:**
 
-- Investigate authentication behavior before implementing final protected-operation assertions.
-- Validate the documented authentication mechanism using Postman.
-- Record observed behavior separately from expected behavior.
-- Avoid assuming that the current 403 behavior represents the intended contract.
-- If the current 403 behavior cannot be resolved because of environmental or application limitations, the behavior will be documented and protected-operation coverage will be implemented only to the extent that reliable expected behavior can be established.
+- Validate the documented authentication mechanism using automated and exploratory API testing.
+- Record historical observations separately from current regression expectations.
+- Maintain automated coverage for protected operations where reliable expected behavior has been established.
+- Document authenticated DELETE as a current environment/application limitation.
+- Avoid assuming that an observed environment-specific response represents the intended API contract.
 
 ### 13.3 Unvalidated Input Behavior
 
