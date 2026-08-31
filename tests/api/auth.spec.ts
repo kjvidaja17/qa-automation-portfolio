@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { AuthHelper } from '../../helpers/auth-helper';
 
-test('should return an authentication token with valid credentials', async ({ request }) => {
+test('API-001 should return an authentication token with valid credentials', async ({ request }) => {
   const authHelper = new AuthHelper(request);
   const username = process.env.RESTFUL_BOOKER_USERNAME;
   const password = process.env.RESTFUL_BOOKER_PASSWORD;
@@ -23,7 +23,7 @@ test('should return an authentication token with valid credentials', async ({ re
   expect(token).not.toHaveLength(0);
 });
 
-test('should reject an invalid username', async ({ request }) => {
+test('API-002 should reject an invalid username', async ({ request }) => {
   const authHelper = new AuthHelper(request);
   const password = process.env.RESTFUL_BOOKER_PASSWORD;
 
@@ -36,7 +36,7 @@ test('should reject an invalid username', async ({ request }) => {
   );
 });
 
-test('should reject an invalid password', async ({ request }) => {
+test('API-003 should reject an invalid password', async ({ request }) => {
   const authHelper = new AuthHelper(request);
   const username = process.env.RESTFUL_BOOKER_USERNAME;
 

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 
-test('should retrieve an existing booking from the booking list', async ({ request }) => {
+test('API-005 should retrieve an existing booking from the booking list', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const listResponse = await apiClient.get('/booking');
 

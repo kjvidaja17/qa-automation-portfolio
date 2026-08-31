@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 
-test('should handle an invalid totalprice data type', async ({ request }) => {
+test('API-007 should handle an invalid totalprice data type', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const bookingData = {
     firstname: 'Taylor',
@@ -32,7 +32,7 @@ test('should handle an invalid totalprice data type', async ({ request }) => {
   expect(persistedBooking.totalprice).toBeNull();
 });
 
-test('should handle an invalid depositpaid data type', async ({ request }) => {
+test('API-008 should handle an invalid depositpaid data type', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const bookingData = {
     firstname: 'Jordan',
@@ -63,7 +63,7 @@ test('should handle an invalid depositpaid data type', async ({ request }) => {
   expect(persistedBooking.depositpaid).toBe(true);
 });
 
-test('should return 500 when firstname is omitted', async ({ request }) => {
+test('API-009 should return 500 when firstname is omitted', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const bookingData = {
     lastname: 'Parker',
@@ -83,7 +83,7 @@ test('should return 500 when firstname is omitted', async ({ request }) => {
   expect(response.status()).toBe(500);
 });
 
-test('should return 500 when lastname is omitted', async ({ request }) => {
+test('API-010 should return 500 when lastname is omitted', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const bookingData = {
     firstname: 'Casey',
@@ -103,7 +103,7 @@ test('should return 500 when lastname is omitted', async ({ request }) => {
   expect(response.status()).toBe(500);
 });
 
-test('should preserve an invalid booking date range', async ({ request }) => {
+test('API-011 should preserve an invalid booking date range', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const bookingData = {
     firstname: 'Riley',

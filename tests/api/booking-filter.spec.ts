@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 
-test('should find a created booking using firstname and lastname filters', async ({ request }) => {
+test('API-014 should find a created booking using firstname and lastname filters', async ({ request }) => {
   const apiClient = new ApiClient(request);
 
   const bookingData = {

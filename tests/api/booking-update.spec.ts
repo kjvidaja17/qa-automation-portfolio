@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 import { AuthHelper } from '../../helpers/auth-helper';
 
-test('should update a booking with an authenticated PUT request', async ({ request }) => {
+test('API-012 should update a booking with an authenticated PUT request', async ({ request }) => {
   const username = process.env.RESTFUL_BOOKER_USERNAME;
   const password = process.env.RESTFUL_BOOKER_PASSWORD;
 

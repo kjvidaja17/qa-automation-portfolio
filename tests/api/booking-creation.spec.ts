@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 
-test('should create a booking and verify the persisted booking data', async ({ request }) => {
+test('API-004 should create a booking and verify the persisted booking data', async ({ request }) => {
   const apiClient = new ApiClient(request);
   const bookingData = {
     firstname: 'Avery',
