@@ -1,5 +1,7 @@
 # QA Automation Portfolio — Restful Booker
 
+[![Playwright Tests](https://github.com/kjvidaja17/qa-automation-portfolio/actions/workflows/playwright.yml/badge.svg)](https://github.com/kjvidaja17/qa-automation-portfolio/actions/workflows/playwright.yml)
+
 ## Project Description
 
 A QA automation portfolio project demonstrating practical API, integration, and browser-based testing with Playwright and TypeScript against the Restful Booker application.
