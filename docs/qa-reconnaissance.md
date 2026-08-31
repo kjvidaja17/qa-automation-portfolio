@@ -8,32 +8,35 @@ Restful Booker
 
 ### Purpose
 
-Restful Booker is a free API playground designed for learning and practicing API testing and API testing tools.
+Restful Booker is a free API playground designed for learning and practicing API testing.
 
-### Core functionality
+### Core Functionality
 
-The application provides a CRUD-based booking API with authentication.
+The application provides a CRUD-based booking API with authentication, along with a browser-accessible interface for booking and administration.
 
-### Available capabilities
+### Available Capabilities
 
 - Authentication
 - Create bookings
 - Retrieve booking IDs
 - Retrieve individual bookings
-- Update bookings
+- Filter bookings
+- Fully update bookings
 - Partially update bookings
 - Delete bookings
+- Browser-based booking and administration
 
-### Test data
+### Test Data
 
-The API starts with 10 pre-loaded booking records.
+The baseline environment is documented as containing 10 pre-loaded booking records.
 
-### Environment behavior
+### Environment Behavior
 
-- Although the application documentation describes a default dataset, the shared environment returned 2,466 booking IDs during this reconnaissance session.
-- The API resets to its default data approximately every 10 minutes.
+- During reconnaissance, the shared environment returned 2,466 booking IDs.
+- The environment resets to its baseline dataset approximately every 10 minutes.
+- Booking records created during testing may disappear after an environment reset.
 
-### Testing relevance
+### Testing Relevance
 
 Restful Booker is suitable for demonstrating:
 
@@ -44,7 +47,7 @@ Restful Booker is suitable for demonstrating:
 - CRUD testing
 - Data validation
 - API automation
-- API/UI integration testing
+- Integration testing
 - AI-assisted test design and analysis
 
 ## 2. Authentication
@@ -64,36 +67,36 @@ Generate an authentication token for protected booking operations.
 
 **Valid credentials observed:**
 
-- Username: `admin`
-- Password: `password123`
+- A known valid test account was successfully used during reconnaissance.
+- Credentials are stored outside the repository and are not committed to source control.
 
 **Successful response observed:**
 
 - HTTP 200
 - Response contains a `token` value
 
-**Negative scenarios observed:**
+**Negative Scenarios Observed:**
 
-| Scenario | Observed response |
+| Scenario | Observed Response |
 | --- | --- |
 | Valid username + valid password | Token returned |
 | Invalid username + valid password | `reason: Bad credentials` |
 | Valid username + invalid password | `reason: Bad credentials` |
 | Missing username and password | `reason: Bad credentials` |
 
-**Additional observation:**
+**Additional Observations:**
 
 - Multiple successful authentication requests generated different token values.
 - Invalid authentication did not return a token.
 
 ## 3. Booking Functionality
 
-Restful Booker provides CRUD functionality for managing hotel booking records.
+Restful Booker provides a booking API for creating, retrieving, updating, and deleting booking records.
 
 ### Create Booking
 
 - Create a new booking using `POST /booking`.
-- Booking data includes guest information, price, deposit status, booking dates, and additional needs.
+- Booking data includes guest details, price, deposit status, booking dates, and additional needs.
 - A successful request returns a generated `bookingid` and the created booking data.
 - Created booking data can subsequently be retrieved using `GET /booking/{id}`.
 
@@ -101,18 +104,19 @@ Restful Booker provides CRUD functionality for managing hotel booking records.
 
 - Retrieve a list of booking IDs using `GET /booking`.
 - Retrieve an individual booking using `GET /booking/{id}`.
-- Booking-list filtering is supported through query parameters such as `firstname` and `lastname`.
+- Filter the booking list using supported query parameters such as `firstname` and `lastname`.
 
 ### Update Booking
 
-- Full booking updates are supported using `PUT /booking/{id}`.
-- Partial booking updates are supported using `PATCH /booking/{id}`.
-- These operations require authentication.
+- Fully replace a booking using `PUT /booking/{id}`.
+- Partially update a booking using `PATCH /booking/{id}`.
+- Both operations require authentication.
 
 ### Delete Booking
 
-- Bookings can be deleted using `DELETE /booking/{id}`.
+- The API exposes `DELETE /booking/{id}` for booking deletion.
 - Delete operations require authentication.
+- During current reconnaissance, authenticated DELETE requests returned HTTP 403 and did not remove the booking.
 
 ### Booking Data Fields
 
@@ -126,7 +130,7 @@ A booking can contain:
 - `bookingdates.checkout`
 - `additionalneeds`
 
-### Initial QA Observations
+### Key QA Observations
 
 - Booking creation successfully returned a generated booking ID.
 - Created booking data was successfully retrieved and matched the submitted values.
@@ -139,19 +143,26 @@ A booking can contain:
 
 ### Application UI
 
-A browser-accessible interface is available, but the reconnaissance performed so far has focused primarily on the REST API.
+A browser-accessible interface is available for user-facing interactions and administration.
+
+UI reconnaissance focused on:
+
+- Contact form submission
+- Admin authentication and navigation
+- Room detail and booking interactions
 
 ### UI Testing Relevance
 
-The portfolio will treat the API as the primary system-under-test layer. Browser automation will be included only where the application provides meaningful UI behavior that adds value beyond API-level testing.
+The API remains the primary testing layer because it provides broader and more efficient coverage of backend behavior. Browser automation is used selectively where it validates user-facing behavior that is not adequately represented by API tests.
 
-### Planned UI / Browser Coverage
+### UI / Browser Coverage
 
-Playwright will be used where browser-level coverage provides meaningful value, including:
+The current browser automation scope includes:
 
-- Verifying availability and accessibility of the application through a browser.
-- Validating browser-level behavior where applicable.
-- Demonstrating Playwright TypeScript capabilities alongside API automation.
+- Contact form submission and confirmation.
+- Admin login and access to the protected dashboard.
+
+Room-booking workflow automation was investigated but deferred because the date-range calendar interaction could not be reproduced deterministically in Playwright.
 
 ### Test-Layer Strategy
 
@@ -165,12 +176,32 @@ API-level testing will be preferred for:
 - Negative API scenarios
 - Response validation
 
-Playwright browser/API capabilities will be used for:
+Browser automation will be used selectively for:
 
-- UI/browser validation where applicable
-- API automation
-- API-to-UI integration scenarios
-- End-to-end workflows where meaningful
+- User-facing UI validation
+- Browser authentication and navigation
+- End-to-end workflows where browser behavior provides meaningful additional coverage
+
+### Room Booking Calendar Observation
+
+The room-detail page contains a booking calendar that uses drag-based interaction to select a stay.
+
+During manual reconnaissance:
+
+- Dragging across dates successfully changed the selected stay.
+- Selecting 2026-09-15 through 2026-09-18 produced a three-night stay.
+- The price summary updated to reflect the selected number of nights and total price.
+- The `Reserve Now` action was available after selecting the stay.
+
+During Playwright/Codegen inspection:
+
+- Clicking a single date did not produce the expected selection behavior.
+- The date-range drag interaction could not be reproduced reliably or deterministically.
+- Browser behavior observed during manual interaction differed from the behavior observed during Playwright automation.
+
+**Testing Decision:**
+
+Full automated room-booking coverage is deferred until the date-range interaction can be reproduced deterministically in Playwright.
 
 ## 5. API Observations
 
@@ -182,24 +213,25 @@ Retrieve a list of booking IDs, with optional filtering.
 **Endpoint:**  
 `https://restful-booker.herokuapp.com/booking`
 
-**Observed response:**
+**Observed Response:**
 
 - HTTP 200
 - Response contains booking ID objects.
 - 2,466 booking records were returned during reconnaissance.
 - The first 10 IDs observed were 1 through 10.
 
-**Filtering observations:**
+**Filtering Observations:**
 
-- `?firstname=sally` returned no matching records.
-- `?lastname=brown` returned no matching records.
-- Exact-match filter behavior should be investigated further using known existing booking data.
+- `?firstname=sally` returned no matching records during initial reconnaissance.
+- `?lastname=brown` returned no matching records during initial reconnaissance.
+- Filtering by `firstname` and `lastname` was later validated successfully using a dynamically created booking.
+- The generated booking ID was present in the filtered results.
 
-**Testing considerations:**
+**Testing Considerations:**
 
 - The booking dataset is dynamic.
 - Tests should avoid assuming a fixed number of bookings.
-- Tests should avoid relying on arbitrary booking IDs that may disappear or change.
+- Tests should avoid relying on arbitrary booking IDs.
 
 ### GET /booking/{id}
 
@@ -209,19 +241,19 @@ Retrieve the details of a specific booking.
 **Endpoint:**  
 `https://restful-booker.herokuapp.com/booking/{id}`
 
-**Test performed:**
+**Initial Test:**
 
-- Requested booking ID `1`
+- Requested booking ID `1`.
 
-**Initial observation:**
+**Initial Observation:**
 
-- Request without an explicit `Accept` header returned HTTP 418 (`I'm a Teapot`).
+- A request without an explicit `Accept` header returned HTTP 418 (`I'm a Teapot`).
 
-**Follow-up test:**
+**Follow-up Test:**
 
-- Request with `Accept: application/json` returned HTTP 200 and the booking details.
+- A request with `Accept: application/json` returned HTTP 200 and the booking details.
 
-**Observed response fields:**
+**Observed Response Fields:**
 
 - `firstname`
 - `lastname`
@@ -231,12 +263,12 @@ Retrieve the details of a specific booking.
 - `bookingdates.checkout`
 - `additionalneeds`
 
-**Testing considerations:**
+**Testing Considerations:**
 
-- Request headers should be included explicitly in automated API tests where appropriate.
-- Header-dependent behavior should be covered by negative/compatibility testing.
+- Define required request headers explicitly where appropriate.
+- Consider header-dependent behavior during negative and compatibility testing.
 
-**Negative scenario:**
+**Negative Scenario:**
 
 - Requested nonexistent booking ID `999999`.
 - Observed HTTP 404 (`Not Found`).
@@ -249,179 +281,200 @@ Create a new booking.
 **Endpoint:**  
 `https://restful-booker.herokuapp.com/booking`
 
-**Test data used:**
+**Initial Test Data:**
 
-- firstname: `Kenneth`
-- lastname: `QA`
-- totalprice: `150`
-- depositpaid: `true`
-- checkin: `2026-09-01`
-- checkout: `2026-09-05`
-- additionalneeds: `Breakfast`
+- `firstname`: `Kenneth`
+- `lastname`: `QA`
+- `totalprice`: `150`
+- `depositpaid`: `true`
+- `bookingdates.checkin`: `2026-09-01`
+- `bookingdates.checkout`: `2026-09-05`
+- `additionalneeds`: `Breakfast`
 
-**Observed response:**
+**Observed Response:**
 
-- Booking was successfully created.
-- A `bookingid` was returned: `3959`.
-- Response included the complete created booking data.
-- Submitted values were preserved in the response.
+- Booking creation succeeded.
+- HTTP 200 was returned.
+- A generated `bookingid` was returned: `3959`.
+- The response included the complete created booking data.
+- The submitted values were preserved in the response.
 
-**Testing considerations:**
+**Persistence Verification:**
 
-- Verify that a valid booking can be created.
-- Verify that the generated booking ID can subsequently be retrieved.
-- Verify that submitted data matches persisted data.
-- Test missing required fields.
-- Test invalid data types.
-- Test invalid date ranges.
-- Test boundary values.
-
-**Persistence verification:**
-
-- The newly created booking (`bookingid: 3959`) was successfully retrieved using `GET /booking/3959`.
+- The newly created booking (`bookingid: 3959`) was subsequently retrieved using `GET /booking/3959`.
 - The retrieved values matched the values submitted during creation.
-- This confirms the created booking was persisted and retrievable.
+- This confirmed that the booking was persisted and retrievable at the time of verification.
+
+**Testing Considerations:**
+
+- Verify successful booking creation.
+- Verify that a generated booking ID is returned.
+- Verify that the created booking can subsequently be retrieved.
+- Compare submitted data with persisted data.
+- Validate behavior for missing required fields.
+- Validate behavior for invalid data types.
+- Validate invalid booking date ranges.
+- Consider boundary and unexpected field values.
 
 ### PUT /booking/{id}
 
 **Purpose:**  
 Replace the details of an existing booking.
 
-**Test setup:**
+**Initial Reconnaissance:**
 
 - A fresh booking was created immediately before the PUT test.
-- Created booking ID: `5221`
-
-**Authentication:**
-
+- Created booking ID: `5221`.
 - Valid credentials successfully generated an authentication token.
 - The token was supplied using the documented `Cookie: token=<token>` approach.
-
-**Test data:**
-
-- firstname: `Kenneth Updated`
-- lastname: `PUT Test Updated`
-- totalprice: `500`
-- depositpaid: `false`
-- checkin: `2026-12-01`
-- checkout: `2026-12-10`
-- additionalneeds: `Lunch`
-
-**Observed result:**
-
-- PUT request returned HTTP 403 Forbidden.
+- The initial PUT request returned HTTP 403 Forbidden.
 - The same result occurred using both PowerShell `Invoke-RestMethod` and `curl.exe`.
-- The target booking remained unchanged when subsequently retrieved with `GET /booking/5221`.
+- A subsequent GET confirmed that the target booking remained unchanged.
 
-**QA observation:**
+**Later Observation — 2026-08-31:**
 
-- PUT update behavior could not be successfully completed during reconnaissance despite using valid credentials and the documented token-cookie approach.
-- Authentication behavior for protected update operations requires further investigation before automation.
+- During later automated test execution, an authenticated PUT request returned HTTP 200.
+- The booking update persisted successfully when subsequently retrieved.
+
+**Current Testing Position:**
+
+- Authenticated PUT currently succeeds with HTTP 200 and is covered by automated regression testing.
+- The earlier HTTP 403 result is retained as historical reconnaissance evidence.
+- The difference between the observations indicates that protected-operation behavior may vary in the shared environment.
+
+**Initial Test Data:**
+
+- `firstname`: `Kenneth Updated`
+- `lastname`: `PUT Test Updated`
+- `totalprice`: `500`
+- `depositpaid`: `false`
+- `bookingdates.checkin`: `2026-12-01`
+- `bookingdates.checkout`: `2026-12-10`
+- `additionalneeds`: `Lunch`
 
 ### PATCH /booking/{id}
 
 **Purpose:**  
 Partially update an existing booking.
 
-**Test setup:**
+**Initial Reconnaissance:**
 
 - A fresh booking was created immediately before the PATCH test.
 - Created booking ID: `2195`.
-
-**Patch request:**
-
-- Only `additionalneeds` was changed from `Breakfast` to `Dinner`.
-
-**Authentication:**
-
 - Valid credentials successfully generated an authentication token.
-- The token was supplied using the `Cookie: token=<token>` approach.
+- The token was supplied using the documented `Cookie: token=<token>` approach.
+- The initial PATCH request attempted to change `additionalneeds` from `Breakfast` to `Dinner`.
+- The PATCH request returned HTTP 403 Forbidden.
+- A subsequent GET returned HTTP 200 and confirmed that the booking remained unchanged.
 
-**Observed result:**
+**Later Observation — 2026-08-31:**
 
-- PATCH request returned HTTP 403 Forbidden.
-- The subsequent GET request returned HTTP 200.
-- The booking remained unchanged.
+- During later automated test execution, an authenticated PATCH request returned HTTP 200.
+- The request changed only `firstname` and `totalprice`.
+- A subsequent GET confirmed that both requested fields were updated.
+- The subsequent GET also confirmed that `lastname`, `depositpaid`, `bookingdates.checkin`, `bookingdates.checkout`, and `additionalneeds` remained unchanged.
 
-**QA observation:**
+**Current Testing Position:**
 
-- PATCH update behavior could not be successfully completed during reconnaissance.
-- PUT and PATCH both returned HTTP 403 despite successful authentication.
-- Authentication behavior for protected update operations requires further investigation.
+- Authenticated PATCH currently succeeds with HTTP 200 and is covered by automated regression testing.
+- Partial-update behavior is validated by checking both changed and unchanged fields.
+- The earlier HTTP 403 result is retained as historical reconnaissance evidence.
+- The later successful result differs from the initial 403 observation in the shared environment.
+
+**Initial Test Data:**
+
+- `firstname`: `Original`
+- `lastname`: `Name`
+- `totalprice`: `100`
+- `depositpaid`: `true`
+- `bookingdates.checkin`: `2026-10-01`
+- `bookingdates.checkout`: `2026-10-08`
+- `additionalneeds`: `WiFi`
 
 ### DELETE /booking/{id}
 
 **Purpose:**  
 Delete an existing booking.
 
-**Test setup:**
+**Initial Reconnaissance:**
 
 - A fresh booking was created immediately before the DELETE test.
 - Created booking ID: `3022`.
-
-**Authentication:**
-
 - Valid credentials successfully generated an authentication token.
-- The token was supplied using the `Cookie: token=<token>` approach.
+- The token was supplied using the documented `Cookie: token=<token>` approach.
+- The DELETE request returned HTTP 403 Forbidden.
+- The booking was not deleted.
 
-**Observed result:**
+**Latest Observation — 2026-08-31:**
 
-- DELETE request returned HTTP 403 Forbidden.
+- A fresh booking was created successfully.
+- Created booking ID: `3853`.
+- Valid credentials successfully generated an authentication token.
+- The token was supplied using the documented `Cookie: token=<token>` approach.
+- `DELETE /booking/3853` returned HTTP 403 Forbidden.
+- A subsequent `GET /booking/3853` returned HTTP 200 OK.
+- The booking data remained present and unchanged after the failed DELETE.
 
-**QA observation:**
+**Current Testing Position:**
 
-- The booking was not deleted during reconnaissance.
-- Authenticated DELETE behavior requires further investigation.
+- Authenticated DELETE currently returns HTTP 403 in the shared environment.
+- The booking remains retrievable after the failed DELETE request.
+- DELETE is therefore documented as a current environment/application limitation rather than automated as a successful deletion workflow.
+- The earlier 403 result is consistent with the latest observation.
 
-### Negative scenarios — Missing required fields
+### Negative Scenarios — Missing Required Fields
 
-| Scenario | Observed result |
+| Scenario | Observed Result |
 | --- | --- |
 | `firstname` omitted | HTTP 500 Internal Server Error |
 | `lastname` omitted | HTTP 500 Internal Server Error |
 
-**QA observation:**
+**QA Observation:**
 
-- Omitting either `firstname` or `lastname` causes a server-side 500 response.
-- A more appropriate API behavior would typically be a client-side validation response such as HTTP 400.
-- These cases should be included in the negative-test suite and tracked as potential API defects/limitations.
+- Omitting either `firstname` or `lastname` results in a server-side HTTP 500 response.
+- The API does not reject these missing fields with a client-side validation response.
+- These behaviors are covered by negative API tests.
+- The observed responses may indicate weak input validation or inadequate error handling.
 
-### Negative scenario — Invalid totalprice data type
+### Negative Scenario — Invalid `totalprice` Data Type
 
 **Test:**
 
-- `totalprice` supplied as a string (`"one hundred fifty"`) instead of a numeric value.
+- `totalprice` was supplied as the string `"one hundred fifty"` instead of a numeric value.
 
-**Observed result:**
+**Observed Result:**
 
-- HTTP 200 / booking created successfully.
+- HTTP 200
+- Booking was created successfully.
 - A `bookingid` was returned: `1262`.
-- `totalprice` was returned as `null`.
+- The stored `totalprice` value was `null`.
 
-**QA observation:**
+**QA Observation:**
 
-- The API accepts an invalid data type for `totalprice`.
-- The supplied invalid value is not rejected and is converted to `null`.
-- This indicates weak input validation and potential data-integrity risk.
-- This should be covered by negative API tests.
+- The API accepts an invalid data type for `totalprice` instead of rejecting the request.
+- The invalid value is converted to `null`.
+- This indicates weak input validation and presents a potential data-integrity risk.
+- The behavior is covered by automated negative API testing.
 
-### Negative scenario — Invalid depositpaid data type
+### Negative Scenario — Invalid `depositpaid` Data Type
 
 **Test:**
 
-- `depositpaid` supplied as a string (`"yes"`) instead of a boolean.
+- `depositpaid` was supplied as the string `"yes"` instead of a boolean value.
 
-**Observed result:**
+**Observed Result:**
 
-- HTTP 200 / booking created successfully.
+- HTTP 200
+- Booking was created successfully.
 - A `bookingid` was returned: `1916`.
-- `depositpaid` was returned as boolean `true`.
+- The stored `depositpaid` value was returned as boolean `true`.
 
-**QA observation:**
+**QA Observation:**
 
-- The API accepts a string value where a boolean is expected.
-- The input appears to be coerced to boolean rather than rejected.
-- This represents weak input-type validation and should be covered by negative API tests.
+- The API accepts an invalid data type for `depositpaid` instead of rejecting the request.
+- The supplied string value appears to be coerced to boolean `true`.
+- This indicates weak input validation and presents a potential data-integrity risk.
+- The behavior is covered by automated negative API testing.
 
 ### Shared Test Data Behavior
 
@@ -429,115 +482,131 @@ Delete an existing booking.
 
 - Booking `3959` was created successfully during earlier reconnaissance.
 - A later `GET /booking/3959` returned HTTP 404 Not Found.
-- This confirms that booking records created during reconnaissance may not persist indefinitely.
+- This demonstrates that booking records in the shared environment may be removed or reset over time.
 
-**Testing implication:**
+**Testing Implications:**
 
 - Automated tests must not depend on previously created booking IDs.
-- Tests should create or dynamically discover their required test data.
-- Cleanup should be performed where appropriate.
-- Test cases should be resilient to the shared environment being reset or modified.
+- Tests should create or dynamically discover the data required for each scenario.
+- Tests should remain independent of shared data created by other sessions.
+- Test design should account for periodic environment resets and changing booking data.
 
 ## 6. Functional Scenarios
 
 ### Authentication
 
-- Generate authentication token using valid credentials.
-- Reject authentication using invalid credentials.
-- Verify authentication response contains a token for valid credentials.
+- Authenticate using valid credentials and verify that a token is returned.
+- Reject invalid credentials.
+- Verify that invalid authentication does not return a token.
 
 ### Booking Retrieval
 
-- Retrieve list of booking IDs.
+- Retrieve the list of booking IDs.
 - Retrieve an existing booking by ID.
-- Return not-found response for a nonexistent booking.
-- Filter bookings by supported query parameters.
+- Return HTTP 404 for a nonexistent booking.
+- Filter bookings using supported query parameters.
 
 ### Booking Creation
 
-- Create a booking with valid data.
-- Verify the created booking returns a booking ID.
-- Verify the created booking can be retrieved.
-- Verify submitted booking data matches persisted data.
+- Create a booking using valid data.
+- Verify that a generated booking ID is returned.
+- Retrieve the created booking.
+- Verify that submitted values match the persisted booking data.
 
 ### Booking Updates
 
-- Fully update an existing booking using PUT.
-- Partially update an existing booking using PATCH.
-- Verify updated booking data persists.
+- Fully replace an existing booking using PUT.
+- Partially update selected fields using PATCH.
+- Verify that updated values persist after retrieval.
+- Verify that PATCH does not unintentionally change fields outside the PATCH payload.
 
 ### Booking Deletion
 
-- Delete an existing booking.
-- Verify deleted booking can no longer be retrieved.
+- Attempt authenticated deletion of an existing booking.
+- Record the current HTTP 403 response.
+- Verify that the booking remains retrievable after the blocked deletion.
 
 ## 7. Negative Scenarios
 
 ### Authentication (Negative)
 
-- Reject invalid username.
-- Reject invalid password.
-- Reject requests with missing credentials.
-- Verify no authentication token is returned for invalid credentials.
+- Reject an invalid username.
+- Reject an invalid password.
+- Verify that invalid authentication does not return a token.
+- Missing-credential behavior was observed during reconnaissance but is not currently included in the automated regression suite.
 
 ### Booking Retrieval (Negative)
 
 - Return HTTP 404 when requesting a nonexistent booking ID.
-- Investigate behavior when unsupported or unmatched filter values are supplied.
-- Verify API behavior when required request headers are omitted.
+- Header-dependent behavior was observed during reconnaissance when `Accept: application/json` was omitted.
+- Unmatched or unsupported filter values remain an area for further investigation.
 
 ### Booking Creation (Negative)
 
-- Reject or appropriately handle missing `firstname`.
-- Reject or appropriately handle missing `lastname`.
-- Reject invalid `totalprice` data types.
-- Reject invalid `depositpaid` data types.
-- Validate malformed booking dates.
-- Validate invalid date ranges.
-- Validate invalid or unexpected field values.
+- Verify behavior when `firstname` is omitted.
+- Verify behavior when `lastname` is omitted.
+- Verify behavior when an invalid `totalprice` data type is supplied.
+- Verify behavior when an invalid `depositpaid` data type is supplied.
+- Verify behavior for malformed booking dates.
+- Verify behavior for invalid date ranges.
+- Validate unexpected or unsupported field values.
 
 ### Booking Updates (Negative)
 
 - Verify behavior when authentication is missing or invalid for PUT.
 - Verify behavior when authentication is missing or invalid for PATCH.
-- Verify behavior when authentication is missing or invalid for DELETE.
-- Investigate why authenticated PUT, PATCH, and DELETE requests return HTTP 403.
 - Verify behavior when updating a nonexistent booking.
 - Verify behavior when required fields are omitted from a PUT request.
 - Verify behavior when invalid data types are supplied during updates.
 
+**Current Observation:**
+
+- Authenticated PUT and PATCH currently succeed with HTTP 200.
+
 ### Booking Deletion (Negative)
 
-- Reject unauthorized DELETE requests.
-- Verify behavior when deleting a nonexistent booking.
+- Verify behavior when authentication is missing or invalid for DELETE.
+- Verify behavior when attempting to delete a nonexistent booking.
+
+**Current Observation:**
+
+- Authenticated DELETE requests currently return HTTP 403 in the shared environment.
 
 ## 8. Boundary / Edge Cases
 
-### Authentication (Boundary)
+### Authentication (Boundary / Future Coverage)
+
+Potential boundary scenarios for future coverage include:
 
 - Empty username.
 - Empty password.
 - Username or password containing leading/trailing whitespace.
 - Unexpectedly long username or password values.
 
-### Booking Data
+### Booking Data (Boundary / Future Coverage)
+
+Potential boundary scenarios for future coverage include:
 
 - `totalprice` equal to `0`.
-- `totalprice` as a negative value.
-- Very large `totalprice` value.
-- `totalprice` with decimal values.
+- Negative `totalprice`.
+- Very large `totalprice` values.
+- Decimal `totalprice` values.
 - Empty `firstname`.
 - Empty `lastname`.
 - Very long `firstname` or `lastname`.
 - Leading/trailing whitespace in name fields.
 
-### Deposit Status
+### Deposit Status (Boundary / Future Coverage)
+
+Potential boundary scenarios for future coverage include:
 
 - `depositpaid = true`.
 - `depositpaid = false`.
 - Invalid boolean representations such as strings or numeric values.
 
-### Booking Dates
+### Booking Dates (Boundary / Future Coverage)
+
+Potential boundary scenarios for future coverage include:
 
 - Check-in date equal to check-out date.
 - Check-out date earlier than check-in date.
@@ -547,7 +616,9 @@ Delete an existing booking.
 - Missing check-out date.
 - Invalid date formats.
 
-### Booking Retrieval (Boundary)
+### Booking Retrieval (Boundary / Future Coverage)
+
+Potential boundary scenarios for future coverage include:
 
 - Booking ID of `0`.
 - Negative booking ID.
@@ -555,7 +626,9 @@ Delete an existing booking.
 - Non-numeric booking ID.
 - Empty booking ID.
 
-### Additional Needs
+### Additional Needs (Boundary / Future Coverage)
+
+Potential boundary scenarios for future coverage include:
 
 - Empty `additionalneeds`.
 - Very long `additionalneeds`.
@@ -563,85 +636,146 @@ Delete an existing booking.
 
 ## 9. Integration Scenarios
 
-### API → UI / Browser Validation
+### INT-001 — Create → Filter → Retrieve
 
-- Create a booking through the API and verify that the booking can be retrieved through the application/browser where applicable.
-- Retrieve booking data through the API and verify that corresponding data is displayed correctly through the application/browser where applicable.
+- Create a fresh booking through `POST /booking`.
+- Capture the generated booking ID.
+- Filter bookings using the created booking's `firstname` and `lastname`.
+- Verify that the generated booking ID is present in the filtered results.
+- Retrieve the booking using the generated booking ID.
+- Verify the full persisted booking data.
 
-### API → API Data Flow
+### INT-002 — Create → PUT → PATCH → Retrieve
 
-- Create a booking through `POST /booking`, capture the generated booking ID, and use it in subsequent API requests.
-- Create a booking, retrieve it, and compare submitted data against persisted data.
-- Create a booking, update it, retrieve it again, and verify the updated data.
-
-### Authentication → Protected Operations
-
-- Generate an authentication token through `POST /auth` and use it for protected booking operations.
-- Verify that protected operations are rejected when authentication is missing or invalid.
-- Investigate the observed HTTP 403 behavior for PUT, PATCH, and DELETE operations.
-
-### End-to-End Booking Flow
-
+- Create a fresh booking.
 - Authenticate.
-- Create a booking.
-- Retrieve the booking.
-- Update the booking.
-- Verify the updated data.
-- Delete the booking.
-- Verify that the booking can no longer be retrieved.
+- Fully update the booking using PUT.
+- Partially update selected fields using PATCH.
+- Retrieve the final booking.
+- Verify the PATCH-updated fields.
+- Verify that fields not changed by PATCH retain the values established by PUT.
 
-### Cross-Layer Test Strategy
+### Authentication and Protected Operations
 
-- Use API testing for backend validation and CRUD operations.
-- Use Playwright for browser-level validation where the UI provides meaningful coverage.
-- Use Playwright API capabilities for automated API and API/UI integration scenarios.
-- Avoid duplicating the same test unnecessarily across UI and API layers.
+Protected-operation workflows use authentication generated through `POST /auth`.
 
-## 10. Initial Risks / Questions
+The integration suite verifies authenticated state transitions through the PUT → PATCH workflow in INT-002.
+
+Authenticated DELETE remains outside the automated integration suite because the current shared environment returns HTTP 403 and does not remove the booking.
+
+### Integration Test Strategy
+
+Integration tests are used for multi-step workflows that combine multiple API operations and validate state across those operations.
+
+The integration layer is intentionally kept smaller than the API layer to avoid duplicating individual endpoint tests.
+
+UI workflows are maintained separately in the browser automation layer.
+
+## 10. Risks and Questions
 
 ### Authentication and Authorization
 
-- Why do PUT, PATCH, and DELETE return HTTP 403 despite successful authentication and token generation?
-- Is the documented cookie-based authentication method currently behaving as expected?
-- Should authenticated requests use an alternative authentication header or mechanism?
+**Risk:**  
+Protected-operation behavior has not been consistent across reconnaissance sessions.
+
+**Current Observation:**
+
+- Authenticated PUT currently succeeds with HTTP 200.
+- Authenticated PATCH currently succeeds with HTTP 200.
+- Authenticated DELETE currently returns HTTP 403 and the booking remains retrievable.
+
+**Open Questions:**
+
+- Why does authenticated DELETE still return HTTP 403 while authenticated PUT and PATCH succeed?
+- Is the documented cookie-based authentication mechanism behaving consistently across protected operations?
 - What is the expected behavior for expired or invalid authentication tokens?
 
 ### Data Validation
 
-- Why do missing `firstname` or `lastname` fields result in HTTP 500 instead of a client-side validation response?
-- Why is an invalid `totalprice` value accepted and returned as `null`?
-- Why is an invalid `depositpaid` string value accepted and converted to `true`?
-- What validation rules are officially expected for booking fields?
+**Risk:**  
+The API accepts some invalid input values instead of rejecting them.
 
-### Test Data and Environment
+**Current Observations:**
 
-- Booking data is dynamic and may change or disappear over time.
-- Tests must not depend on fixed booking IDs or a fixed number of records.
-- Test data should be created dynamically where possible.
-- The shared environment may introduce test instability or interference from other users.
+- Missing `firstname` or `lastname` results in HTTP 500.
+- An invalid `totalprice` data type is accepted and stored as `null`.
+- An invalid `depositpaid` string value is accepted and returned as boolean `true`.
+
+**Open Question:**
+
+- What validation rules and error responses are expected for invalid or missing booking fields?
+
+### Shared Test Environment
+
+**Risk:**  
+The shared environment is dynamic and may reset or modify booking data.
+
+**Observed Behavior:**
+
+- Booking records created during reconnaissance may later return HTTP 404.
+- The available booking dataset changes over time.
+
+**Mitigation:**
+
+- Create test data dynamically.
+- Capture generated booking IDs.
+- Avoid hard-coded booking IDs.
+- Keep tests independent of shared state.
 
 ### Request Headers
 
-- Explicit `Accept: application/json` affected the observed behavior of `GET /booking/{id}`.
-- API tests should explicitly define required headers.
-- Header-dependent behavior should be included in API validation.
+**Observation:**
 
-### UI Coverage
+- Omitting `Accept: application/json` caused an initial GET request to return HTTP 418.
+- Including the header resulted in HTTP 200 and the booking details.
 
-- Restful Booker is primarily an API-testing playground rather than a feature-rich customer-facing application.
-- UI automation should therefore be limited to meaningful browser-level scenarios.
-- API testing should remain the primary layer for CRUD and validation testing.
+**Testing Consideration:**
 
-### Automation Risks
+- Required request headers should be defined explicitly in automated tests.
+- Header-dependent behavior should be considered when investigating compatibility or unexpected responses.
 
-- Tests should remain independent and avoid relying on previously created data.
-- Tests should capture dynamically generated booking IDs.
-- Tests should clean up created data where the API permits it.
-- CI execution must account for the shared and potentially changing test environment.
+### UI Automation Stability
+
+**Risk:**  
+The room-booking calendar requires drag-based date-range selection, but the interaction could not be reproduced deterministically in Playwright.
+
+**Current Observation:**
+
+- Manual browser interaction successfully selected date ranges and updated pricing.
+- The same interaction was not reliably reproducible during Playwright/Codegen inspection.
+
+**Testing Decision:**
+
+- Full room-booking calendar automation is deferred until a deterministic interaction can be established.
+- Flaky mouse-based automation should not be introduced solely to increase test count.
+
+### Test Flakiness
+
+**Risk:**  
+Failures may result from shared-environment changes, external service behavior, network conditions, or timing rather than actual application defects.
+
+**Mitigation:**
+
+- Keep tests independent.
+- Generate test data dynamically.
+- Avoid unnecessary dependencies between tests.
+- Preserve failure diagnostics.
+- Investigate repeated failures before classifying them as product defects.
+
+### AI-Assisted Testing
+
+**Risk:**  
+AI-generated test ideas, code, or analysis may contain incorrect assumptions.
+
+**Mitigation:**
+
+- Review AI-generated code before execution.
+- Validate generated tests against actual application behavior.
+- Treat AI-generated defect analysis as a hypothesis.
+- Use observed system behavior as the basis for final QA decisions.
 
 ### Open Questions
 
-- What is the correct authentication mechanism for PUT, PATCH, and DELETE in the current environment?
-- Which API behaviors are documented requirements versus intentional characteristics of the test application?
-- Which observed behaviors should be treated as defects, limitations, or expected behavior?
-- Which scenarios provide the highest value for automated regression coverage?
+- Which API behaviors represent documented requirements versus characteristics of the shared training environment?
+- Which observed behaviors should be classified as defects, environment limitations, or expected behavior?
+- What additional boundary or negative scenarios would provide enough value to justify expanding the current regression suite?
