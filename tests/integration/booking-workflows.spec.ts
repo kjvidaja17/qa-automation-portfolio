@@ -2,19 +2,19 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 import { AuthHelper } from '../../helpers/auth-helper';
 
-test('should create and retrieve a booking with matching persisted data', async ({ request }) => {
+test('INT-001: should create, filter, and retrieve a booking', async ({ request }) => {
   const apiClient = new ApiClient(request);
 
   const bookingData = {
-    firstname: 'Jordan',
-    lastname: 'Williams',
-    totalprice: 350,
-    depositpaid: false,
+    firstname: 'Integration',
+    lastname: 'FilterTest',
+    totalprice: 300,
+    depositpaid: true,
     bookingdates: {
-      checkin: '2026-10-05',
-      checkout: '2026-10-12',
+      checkin: '2026-10-15',
+      checkout: '2026-10-20',
     },
-    additionalneeds: 'Late checkout',
+    additionalneeds: 'Airport shuttle',
   };
 
   // Create a booking
@@ -28,7 +28,22 @@ test('should create and retrieve a booking with matching persisted data', async 
 
   const bookingId = createBody.bookingid as number;
 
-  // Retrieve the booking
+  // Filter bookings by firstname and lastname
+  const filterResponse = await apiClient.get('/booking', {
+    params: {
+      firstname: bookingData.firstname,
+      lastname: bookingData.lastname,
+    },
+  });
+
+  expect(filterResponse.status()).toBe(200);
+  const bookingList = await filterResponse.json();
+
+  expect(Array.isArray(bookingList)).toBe(true);
+  const bookingIds = bookingList.map((booking: any) => booking.bookingid);
+  expect(bookingIds).toContain(bookingId);
+
+  // Retrieve the specific booking
   const getResponse = await apiClient.get(`/booking/${bookingId}`);
 
   expect(getResponse.status()).toBe(200);
@@ -44,7 +59,7 @@ test('should create and retrieve a booking with matching persisted data', async 
   expect(retrievedBooking.additionalneeds).toBe(bookingData.additionalneeds);
 });
 
-test('should create, update, and retrieve a booking with the updated data', async ({ request }) => {
+test('INT-002: should create, fully update, partially update, and retrieve a booking', async ({ request }) => {
   const username = process.env.RESTFUL_BOOKER_USERNAME;
   const password = process.env.RESTFUL_BOOKER_PASSWORD;
 
@@ -60,15 +75,15 @@ test('should create, update, and retrieve a booking with the updated data', asyn
   const authHelper = new AuthHelper(request);
 
   const originalBooking = {
-    firstname: 'Alex',
-    lastname: 'Thompson',
-    totalprice: 425,
+    firstname: 'Original',
+    lastname: 'Name',
+    totalprice: 200,
     depositpaid: true,
     bookingdates: {
       checkin: '2026-11-01',
-      checkout: '2026-11-08',
+      checkout: '2026-11-07',
     },
-    additionalneeds: 'High floor',
+    additionalneeds: 'Breakfast',
   };
 
   // Create a booking
@@ -85,42 +100,59 @@ test('should create, update, and retrieve a booking with the updated data', asyn
   // Authenticate
   const token = await authHelper.authenticate(username, password);
 
-  // Update the booking
-  const updatedBooking = {
-    firstname: 'Alexandra',
-    lastname: 'Thompson-Hayes',
-    totalprice: 550,
+  // Full update with PUT
+  const fullyUpdatedBooking = {
+    firstname: 'FullyUpdated',
+    lastname: 'PutTest',
+    totalprice: 400,
     depositpaid: false,
     bookingdates: {
       checkin: '2026-12-01',
-      checkout: '2026-12-10',
+      checkout: '2026-12-08',
     },
-    additionalneeds: 'Quiet location',
+    additionalneeds: 'Dinner',
   };
 
-  const updateResponse = await apiClient.put(`/booking/${bookingId}`, {
+  const putResponse = await apiClient.put(`/booking/${bookingId}`, {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
       Cookie: `token=${token}`,
     },
-    data: updatedBooking,
+    data: fullyUpdatedBooking,
   });
 
-  expect(updateResponse.status()).toBe(200);
+  expect(putResponse.status()).toBe(200);
 
-  // Retrieve and verify updated booking
+  // Partial update with PATCH
+  const partialUpdate = {
+    firstname: 'PartiallyUpdated',
+    totalprice: 550,
+  };
+
+  const patchResponse = await apiClient.patch(`/booking/${bookingId}`, {
+    headers: {
+      Cookie: `token=${token}`,
+    },
+    data: partialUpdate,
+  });
+
+  expect(patchResponse.status()).toBe(200);
+
+  // Retrieve and verify the final booking state
   const getResponse = await apiClient.get(`/booking/${bookingId}`);
 
   expect(getResponse.status()).toBe(200);
-  const retrievedBooking = await getResponse.json();
+  const finalBooking = await getResponse.json();
 
-  // Verify all updated fields persist
-  expect(retrievedBooking.firstname).toBe(updatedBooking.firstname);
-  expect(retrievedBooking.lastname).toBe(updatedBooking.lastname);
-  expect(retrievedBooking.totalprice).toBe(updatedBooking.totalprice);
-  expect(retrievedBooking.depositpaid).toBe(updatedBooking.depositpaid);
-  expect(retrievedBooking.bookingdates.checkin).toBe(updatedBooking.bookingdates.checkin);
-  expect(retrievedBooking.bookingdates.checkout).toBe(updatedBooking.bookingdates.checkout);
-  expect(retrievedBooking.additionalneeds).toBe(updatedBooking.additionalneeds);
+  // Verify PATCH-updated fields
+  expect(finalBooking.firstname).toBe(partialUpdate.firstname);
+  expect(finalBooking.totalprice).toBe(partialUpdate.totalprice);
+
+  // Verify fields from the PUT that were not overridden by PATCH
+  expect(finalBooking.lastname).toBe(fullyUpdatedBooking.lastname);
+  expect(finalBooking.depositpaid).toBe(fullyUpdatedBooking.depositpaid);
+  expect(finalBooking.bookingdates.checkin).toBe(fullyUpdatedBooking.bookingdates.checkin);
+  expect(finalBooking.bookingdates.checkout).toBe(fullyUpdatedBooking.bookingdates.checkout);
+  expect(finalBooking.additionalneeds).toBe(fullyUpdatedBooking.additionalneeds);
 });
