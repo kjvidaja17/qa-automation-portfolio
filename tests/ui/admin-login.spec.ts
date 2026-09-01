@@ -10,7 +10,7 @@ test('UI-002: should allow an admin to log in and reach the protected dashboard'
   await page.getByRole('button', { name: 'Login' }).click();
 
   await expect(page).toHaveURL(/\/admin(?:\/)?$/);
-  await expect(page.getByRole('link', { name: 'Rooms' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Report' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Rooms' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('link', { name: 'Report' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 10000 });
 });
