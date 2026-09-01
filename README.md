@@ -23,6 +23,30 @@ The full suite currently contains 19 automated tests. The suite passes locally a
 | UI | `UI-001: Contact form submission`; `UI-002: Admin login and protected dashboard access` | 2 |
 | **Total** | **Automated regression coverage** | **19** |
 
+## Test Coverage Matrix
+
+| ID | Layer | Scenario |
+| --- | --- | --- |
+| API-001 | API | Valid authentication returns a token |
+| API-002 | API | Invalid username is rejected |
+| API-003 | API | Invalid password is rejected |
+| API-004 | API | Create booking and verify persisted data |
+| API-005 | API | Retrieve an existing booking |
+| API-006 | API | Retrieve nonexistent booking returns 404 |
+| API-007 | API | Invalid `totalprice` data type |
+| API-008 | API | Invalid `depositpaid` data type |
+| API-009 | API | Missing `firstname` |
+| API-010 | API | Missing `lastname` |
+| API-011 | API | Invalid booking date range |
+| API-012 | API | Authenticated PUT update |
+| API-013 | API | Health endpoint |
+| API-014 | API | Filter booking by `firstname` and `lastname` |
+| API-015 | API | Authenticated PATCH preserves unchanged fields |
+| INT-001 | Integration | Create → Filter → Retrieve |
+| INT-002 | Integration | Create → PUT → PATCH → Retrieve |
+| UI-001 | UI | Contact form submission and confirmation |
+| UI-002 | UI | Admin login and protected dashboard access |
+
 ## Test Strategy / Test-Layer Strategy
 
 - **API first:** API tests provide the primary regression signal and cover core service behavior efficiently.
