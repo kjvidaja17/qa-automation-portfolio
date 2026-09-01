@@ -1,7 +1,17 @@
 {
   "name": "qa-automation-portfolio",
   "version": "1.0.0",
-  "description": "",
+  "description": "Risk-based QA automation portfolio using TypeScript, Playwright, REST API testing, integration testing, targeted UI automation, and GitHub Actions CI",
+  "keywords": [
+    "qa",
+    "test-automation",
+    "playwright",
+    "typescript",
+    "api-testing",
+    "integration-testing",
+    "ui-testing",
+    "github-actions"
+  ],
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
@@ -11,7 +21,6 @@
     "test:integration": "playwright test tests/integration",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

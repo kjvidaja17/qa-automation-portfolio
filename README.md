@@ -67,6 +67,15 @@ The full suite currently contains 19 automated tests. The suite passes locally a
 - TypeScript typechecking
 - Full-suite execution in GitHub Actions
 
+## Key QA Findings
+
+- Authenticated `PUT` and `PATCH` currently succeed and are covered by regression tests.
+- Authenticated `DELETE` currently returns HTTP 403 in the shared environment.
+- Missing `firstname` or `lastname` results in HTTP 500.
+- Invalid `totalprice` input is accepted and stored as `null`.
+- Invalid `depositpaid` input is accepted and coerced to `true`.
+- Room-calendar automation is deferred because the drag-based date-range interaction is not deterministic in Playwright.
+
 ## Technology Stack
 
 - TypeScript
